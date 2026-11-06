@@ -17,3 +17,7 @@
 | D-13 | Trabajo en rama de trabajo, commits pequeños, sin force push ni cambios directos a `main`. | Instrucción del prompt. | — |
 | D-14 | Las empresas entran por CSV y alta manual; el analizador solo visita el sitio público de cada empresa. | Evitar problemas de términos de uso y de datos personales. | Sí |
 | D-15 | Los tokens de diseño parten de `docs/brand/design.md`. Los neutros y colores semánticos de ese documento son derivados, no oficiales: se usan hasta que Diseño los confirme. | El manual no los define. | Sí |
+| D-16 | Stack confirmado sin restricciones del Hub: Next.js, TypeScript estricto, PostgreSQL, pg-boss. | Sin preferencia del usuario; es la opción más mantenible y portable. | Sí |
+| D-17 | Desarrollo local primero: todo corre en la Mac con Docker Compose. El `Dockerfile` de producción queda listo para que el jefe lo despliegue en el servidor de APROS con un dominio nuevo. Sin servicios en la nube hasta nueva aprobación. | Instrucción del usuario. | Sí |
+| D-18 | Inicio de sesión: Google OIDC con dominio `apros.pe` configurable. Para desarrollo local, un inicio de sesión de desarrollo que solo funciona con `NODE_ENV=development`, desactivado y probado como inaccesible en producción. | Permite avanzar sin credenciales de Google. | Sí |
+| D-19 | Mientras viva en la Mac, solo datos ficticios de demostración. Ningún dato real de prospectos hasta que el jefe apruebe el despliegue. | Reduce riesgo de privacidad (Ley 29733). | Sí |

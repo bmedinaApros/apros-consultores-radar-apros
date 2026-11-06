@@ -138,8 +138,10 @@ Cada fase termina con pruebas ejecutadas, resumen y **detención para tu revisi�
 
 - **Q1.** ¿Dónde debo crear el repositorio de Radar? Propongo uno nuevo y vacío (p. ej. `apros-consultores/radar-apros`) bajo tu control. Hoy solo veo `fadebarber-app/fade`, que no parece relacionado.
 - **Q2.** ¿Puedes entregar el material del Digital Growth Advisor y los archivos de marca (`assets/brand/`)? Si no, sigo con ejemplos y marcadores pendientes.
-- **Q3.** ¿Algún stack del Hub que deba respetar? Si no, uso el propuesto (Next.js, PostgreSQL, pg-boss).
-- **Q4.** ¿Dónde se alojará (proveedor/región)? Afecta Docker, respaldos y costos. Puedo avanzar sin esto hasta la fase 7.
+- **Q3 (resuelta).** Sin restricción: se usa el stack propuesto.
+- **Q3-original.** ¿Algún stack del Hub que deba respetar? Si no, uso el propuesto (Next.js, PostgreSQL, pg-boss).
+- **Q4 (resuelta).** Local en la Mac hasta aprobación del jefe; luego, servidor propio con dominio nuevo.
+- **Q4-original.** ¿Dónde se alojará (proveedor/región)? Afecta Docker, respaldos y costos. Puedo avanzar sin esto hasta la fase 7.
 - **Q5.** ¿Qué dominio(s) de Google Workspace se autorizan, y quién crea las credenciales OIDC?
 
 Aprobación pedida: este plan, las decisiones de `DECISIONS.md` y la respuesta a Q1 (necesaria para iniciar la fase 1).
