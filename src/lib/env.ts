@@ -10,6 +10,13 @@ const schema = z.object({
   GOOGLE_CLIENT_ID: z.string().default(""),
   GOOGLE_CLIENT_SECRET: z.string().default(""),
   DEV_LOGIN_ENABLED: z.enum(["true", "false"]).default("false"),
+  // Analizador web
+  CRAWLER_USER_AGENT: z.string().default("RadarAPROS/1.0 (+https://apros.pe; analisis comercial B2B)"),
+  CRAWLER_ALLOWED_PORTS: z.string().default("80,443"),
+  CRAWLER_MAX_PAGES: z.coerce.number().int().min(1).max(30).default(8),
+  CRAWLER_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60000).default(10000),
+  ANALYSIS_CACHE_DAYS: z.coerce.number().int().min(0).max(90).default(7),
+  PAGESPEED_API_KEY: z.string().default(""),
 });
 
 export type Env = z.infer<typeof schema>;

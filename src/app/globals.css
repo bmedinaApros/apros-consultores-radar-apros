@@ -131,3 +131,8 @@ input:focus-visible, select:focus-visible { box-shadow: var(--focus-ring); }
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-sm); }
 .stat { font: 400 40px/1 var(--font-display); color: var(--apros-indigo); }
 .inline-form { display: inline-flex; gap: var(--space-xs); align-items: center; flex-wrap: wrap; }
+
+.evidence { margin: 4px 0; padding: 4px 10px; border-left: 3px solid var(--apros-cyan); color: var(--color-text-muted); font-size: 13px; word-break: break-word; }
+
+textarea { font: 400 16px var(--font-body); padding: 8px 12px; border: 1px solid var(--apros-gray-600); border-radius: var(--radius-sm); background: #fff; color: var(--apros-navy); max-width: 100%; width: 100%; }
+textarea:focus-visible { box-shadow: var(--focus-ring); }

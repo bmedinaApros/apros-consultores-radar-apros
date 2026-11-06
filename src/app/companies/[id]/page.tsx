@@ -9,7 +9,9 @@ import { companySources, getCompany, listIndustries } from "@/lib/companies/serv
 import { findDoNotContact } from "@/lib/companies/exclusions";
 import { listUsers } from "@/lib/users";
 import { CLASSIFICATION_LABELS, STAGE_LABELS } from "@/lib/labels";
-import { updateCompanyAction } from "../actions";
+import { analyzeAction, updateCompanyAction } from "../actions";
+import { SignalsPanel } from "@/components/signals-panel";
+import { canAnalyze, latestCompletedRunId, listIndustrySignals, listRuns, observationsForRun, signalChanges } from "@/lib/analyzer/service";
 
 export const dynamic = "force-dynamic";
 const fmt = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Lima" });
@@ -24,6 +26,10 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
   const [sources, industries, users, dnc] = await Promise.all([
     companySources(id), listIndustries(), listUsers(), findDoNotContact({ name: company.legal_name, domain: company.domain, ruc: company.ruc }),
   ]);
+  const runId = await latestCompletedRunId(id);
+  const [runs, rows, changes, indSignals] = await Promise.all([listRuns(id, 5), runId ? observationsForRun(runId) : Promise.resolve([]), signalChanges(id), listIndustrySignals()]);
+  const industryNames = Object.fromEntries(indSignals.map((x) => [`industry.${x.slug}`, x.name]));
+  const mayAnalyze = canAnalyze({ id: user.userId, role: user.role }, company);
   const editable = canModifyOwned({ id: user.userId, role: user.role }, { ownerId: company.owner_id }, "companies.write");
   const manager = user.role === "admin" || user.role === "sales_lead";
   return (
@@ -59,6 +65,24 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
           <button className="btn btn-primary" type="submit">Guardar cambios</button>
         </fieldset>
       </form>
+      <section aria-labelledby="analisis" className="stack">
+        <h2 id="analisis">Análisis web</h2>
+        <p className="muted">Solo se leen páginas públicas del sitio de la empresa. Lo que no se puede leer figura como «no se pudo verificar», nunca como un hallazgo negativo.</p>
+        {mayAnalyze && company.domain && !dnc && (
+          <form action={analyzeAction} className="inline-form">
+            <input type="hidden" name="id" value={company.id} />
+            <button className="btn btn-primary btn-small" type="submit" name="force" value="0">{runId ? "Reutilizar o actualizar análisis" : "Analizar ahora"}</button>
+            {runId && <button className="btn btn-secondary btn-small" type="submit" name="force" value="1">Forzar un análisis nuevo</button>}
+          </form>
+        )}
+        {!company.domain && <p className="muted">La empresa no tiene sitio web conocido; no se puede analizar.</p>}
+        {runs.length > 0 && (
+          <ul className="muted">
+            {runs.map((r) => <li key={r.id}>{fmt.format(r.started_at)} · {({ running: "en curso", completed: "completado", failed: "falló", skipped: "omitido" } as Record<string, string>)[r.status]} · {r.status === "skipped" ? r.skip_reason : r.status === "failed" ? r.error : `${r.pages_fetched} páginas · versión ${r.analyzer_version}`}</li>)}
+          </ul>
+        )}
+        {rows.length > 0 ? <SignalsPanel rows={rows} industryNames={industryNames} changes={changes} /> : <div className="card empty"><p>Aún no hay señales. Lanza un análisis para obtenerlas.</p></div>}
+      </section>
       <section className="card" aria-labelledby="fuentes">
         <h2 id="fuentes">Procedencia de los datos</h2>
         {sources.length === 0 ? <p className="muted">Sin registros.</p> : (

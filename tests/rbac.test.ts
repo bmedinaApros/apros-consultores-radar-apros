@@ -56,3 +56,18 @@ describe("RBAC", () => {
     expect(() => requirePermission({ role: "admin" }, "users.manage")).not.toThrow();
   });
 });
+
+import { canAnalyze } from "@/lib/analyzer/service";
+
+describe("permiso de análisis web", () => {
+  it("admin, líder y consultor analizan cualquier empresa; lectura no", () => {
+    for (const role of ["admin", "sales_lead", "consultant"] as const) expect(canAnalyze({ id: "u1", role }, { owner_id: "u2" })).toBe(true);
+    expect(canAnalyze({ id: "u1", role: "read_only" }, { owner_id: null })).toBe(false);
+  });
+  it("un vendedor solo analiza lo propio o lo que no tiene dueño", () => {
+    const me = { id: "u1", role: "salesperson" as const };
+    expect(canAnalyze(me, { owner_id: "u1" })).toBe(true);
+    expect(canAnalyze(me, { owner_id: null })).toBe(true);
+    expect(canAnalyze(me, { owner_id: "u2" })).toBe(false);
+  });
+});

@@ -38,3 +38,10 @@
 | D-34 | Un sitio web de red social o correo gratuito se descarta como dominio de la empresa. | El analizador solo debe visitar el sitio propio; esto evita apuntar a LinkedIn o Google. | Sí |
 | D-35 | El rubro lo confirma una persona; el sistema solo lo deja «por clasificar» si falta o es dudoso. | Principio de credibilidad. | Sí |
 | D-36 | Los duplicados por nombre se comparan en memoria (índice cargado una vez por lote). | Adecuado para miles de empresas; si crece a cientos de miles, se pasa a índice en base. | Sí |
+| D-37 | El analizador usa un descargador propio (`http`/`https` de Node) con DNS fijado a la IP validada, en lugar de `fetch` o una biblioteca de scraping. | Permite validar cada salto y evitar el DNS rebinding, algo que `fetch` no deja controlar. | Sí |
+| D-38 | Estados de observación: observado, no detectado y no verificable. La ausencia en HTML estático es «no detectada» con confianza baja; si hay Tag Manager, pasa a «no verificable». | Cumple «un fallo de lectura nunca es un hallazgo negativo» sin afirmar lo que no se puede ver. | Sí |
+| D-39 | Sin navegador sin interfaz en la fase 3. | Reduce la superficie de ataque; los sitios con renderizado en el cliente quedan con confianza baja o «no verificable». Se reevalúa con datos del piloto. | Sí |
+| D-40 | Señales por rubro con palabras clave de texto simple (no expresiones regulares), editables por el administrador. | Evita ReDoS y permite configurar sin código. | Sí |
+| D-41 | Cola con pg-boss en su propio esquema `pgboss`, creado por la migración; la aplicación recibe permisos solo sobre ese esquema. | Mínimos privilegios; sin Redis. | Sí |
+| D-42 | Caché de análisis por empresa, versión del analizador y vigencia (7 días, configurable); se puede forzar uno nuevo. | Controla costo y carga sobre sitios ajenos. | Sí |
+| D-43 | Cliente de PageSpeed escrito pero desactivado sin clave de API; se prueba con un proveedor simulado. | No hay clave ni acceso al servicio real en el entorno de desarrollo. | Sí |
