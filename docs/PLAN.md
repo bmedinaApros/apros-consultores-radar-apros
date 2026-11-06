@@ -13,10 +13,22 @@ Estado: **borrador. No se ha implementado nada.** Fecha: 2026-11-06.
 | Versiones en npm (verificadas hoy) | next 16.4.5, typescript 7.0.2, pg-boss 12.38.1, playwright 1.65.0. Se fijan en `package.json` y lockfile al implementar, tras revisar que sigan mantenidas. |
 | Hub / CRM | Sin documentación ni acceso. Se usa adaptador simulado (decisión D-05). |
 | Metodología Digital Growth Advisor | No existe en el entorno. Se usará archivo de ejemplo en `docs/methodology/` y se te avisará. |
-| Marca (`assets/brand/`) | No existe. Queda pendiente; no se redibuja nada. |
+| Marca | Recibidos: manual (PDF), `design.md` y dos logotipos horizontales (color y blanco) en `assets/brand/`. **Falta el isotipo solo.** El manual tiene la errata del HEX del azul (se usa `#0054FC`). Roboto como fuente de cuerpo está inferida y pendiente de validar con Diseño. |
 | Fuente Questrial | No incluida. Verificar licencia (SIL OFL en Google Fonts) y alojarla localmente. |
 
 Nota sobre Docker: está instalado, pero si el daemon no corre en este contenedor, la base de desarrollo usará un PostgreSQL local; se confirma en fase 1.
+
+## 0.1 Fuentes de información (qué consulta Radar y qué no)
+
+| Fuente | Uso | Estado |
+|---|---|---|
+| Archivos CSV del equipo comercial | Origen principal de las empresas | En el plan |
+| Alta manual | Empresas que el equipo encuentra por su cuenta | En el plan |
+| **Sitio web público de cada empresa** | Único sitio externo que el analizador visita: pocas páginas, respetando `robots.txt`, con User-Agent identificable | En el plan |
+| PageSpeed Insights API (Google) | Rendimiento de ese mismo sitio | En el plan, con clave y cuota |
+| API de Anthropic | Redacta el diagnóstico solo con observaciones ya guardadas; no navega | En el plan |
+| Google, LinkedIn y directorios que lo prohíban | Scraping | **Excluido** |
+| Proveedores de datos de empresas (SUNAT/padrón RUC, Google Places API u otros) | Descubrir empresas | **No incluido.** Cada uno requiere revisar términos de uso, límites de almacenamiento y costo antes de decidir. |
 
 ## 1. Arquitectura
 
