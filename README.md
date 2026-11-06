@@ -2,7 +2,7 @@
 
 Aplicación web interna de APROS Consultores Digitales. Su propósito: **entregar cada semana una lista priorizada de empresas peruanas a las que APROS podría ofrecer sus servicios**, con la evidencia de cada hallazgo y la revisión de un consultor antes de que un vendedor la use.
 
-Estado: **fase 3 de 8 (Analizador web)**. Incluye acceso con Google Workspace, roles, auditoría, importación CSV con deduplicación, lista de no contactar, clientes activos, rubros editables y el marco de fuentes. Analiza el sitio público de cada empresa y guarda señales con evidencia (ver `docs/ANALYZER.md`). El puntaje y la lista semanal llegan en la fase 4. Ver `docs/PLAN.md`.
+Estado: **fase 4 de 8 (Puntaje y lista semanal)**. Incluye acceso con Google Workspace, roles, auditoría, importación CSV con deduplicación, lista de no contactar, clientes activos, rubros editables y el marco de fuentes. Analiza el sitio público de cada empresa y guarda señales con evidencia (ver `docs/ANALYZER.md`). Puntúa con modelos por rubro, sugiere servicios de APROS y arma cada semana una lista que una persona revisa (ver `docs/SCORING.md`). El diagnóstico llega en la fase 5. Ver `docs/PLAN.md`.
 
 ## Requisitos (Mac)
 
@@ -60,6 +60,17 @@ npm run worker
 Luego abre una empresa con sitio web, pulsa **Analizar ahora** y recarga la ficha. Con las empresas ficticias (dominios `*.example.com`, que no existen) todas las señales saldrán **«No se pudo verificar»**: es el comportamiento correcto. Para ver señales reales, edita una empresa y pon el sitio de una empresa que tú elijas; el analizador solo lee páginas públicas, respeta `robots.txt` y se identifica como `RadarAPROS`.
 
 En **Señales por rubro** (administrador) puedes agregar palabras clave propias de un rubro sin tocar código.
+
+## Probar la lista semanal
+
+Con `npm run dev` y `npm run worker` corriendo, entra como administrador:
+
+1. Importa empresas con sitio web (**Importar CSV**) o activa la fuente simulada en **Fuentes**.
+2. Ve a **Lista semanal** y pulsa **Ejecutar ahora**. El worker descubre, analiza (con presupuesto), puntúa y guarda la lista. También corre solo, por defecto los lunes a las 06:00 (hora de Lima).
+3. Revisa cada empresa: **por qué** está, qué **servicios** podrían encajar (hipótesis) y aprueba, asigna a un vendedor o rechaza con motivo.
+4. Entra como vendedor: solo ve lo aprobado que es suyo o está libre, en la lista y en la **Bandeja**.
+
+En la ficha de cada empresa están el desglose del puntaje, los criterios manuales y el ajuste con motivo. **Los modelos y servicios cargados son un ejemplo**: edítalos en **Modelos de puntaje** y **Servicios de APROS**. Con los dominios ficticios (`*.example.com`) el análisis sale «no se pudo verificar» y no hay lista: usa sitios reales que tú elijas para ver resultados.
 
 ## Comandos
 

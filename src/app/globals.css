@@ -136,3 +136,9 @@ input:focus-visible, select:focus-visible { box-shadow: var(--focus-ring); }
 
 textarea { font: 400 16px var(--font-body); padding: 8px 12px; border: 1px solid var(--apros-gray-600); border-radius: var(--radius-sm); background: #fff; color: var(--apros-navy); max-width: 100%; width: 100%; }
 textarea:focus-visible { box-shadow: var(--focus-ring); }
+
+.note { padding: var(--space-sm); border-radius: var(--radius-sm); border: 1px solid var(--apros-indigo); color: var(--apros-navy); background: #fff; margin-bottom: var(--space-sm); }
+.note-warn { border-color: var(--color-warning-on-light); }
+.row > div { min-width: 0; max-width: 100%; }
+.row select, .row input:not([type="checkbox"]):not([type="radio"]) { max-width: 100%; }
+@media (max-width: 800px) { .row > div { flex: 1 1 100%; } .row select, .row input:not([type="checkbox"]):not([type="radio"]) { width: 100%; } }
