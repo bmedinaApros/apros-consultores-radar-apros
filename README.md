@@ -15,7 +15,7 @@ Estado: **fase 4 de 8 (Puntaje y lista semanal)**. Incluye acceso con Google Wor
 ```bash
 git clone https://github.com/bmedinaApros/apros-consultores-radar-apros.git
 cd apros-consultores-radar-apros
-git checkout feat/fase-1-fundaciones
+git checkout feat/fase-4-lista-semanal
 npm ci
 cp .env.example .env
 ```
@@ -30,7 +30,6 @@ Levanta la base de datos, aplica las migraciones y carga los usuarios ficticios:
 
 ```bash
 docker compose up -d db
-set -a && . ./.env && set +a
 npm run db:migrate
 npm run db:seed
 ```

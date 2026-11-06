@@ -13,9 +13,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:migrate": "node scripts/migrate.mjs up",
-    "db:rollback": "node scripts/migrate.mjs down",
-    "db:seed": "tsx scripts/seed-dev.ts",
+    "db:migrate": "node --env-file=.env scripts/migrate.mjs up",
+    "db:rollback": "node --env-file=.env scripts/migrate.mjs down",
+    "db:seed": "tsx --env-file=.env scripts/seed-dev.ts",
     "audit:deps": "npm audit --audit-level=high",
     "worker": "tsx --env-file=.env scripts/worker.ts"
   },
