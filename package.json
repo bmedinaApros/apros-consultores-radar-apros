@@ -1,0 +1,45 @@
+{
+  "name": "radar-apros",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Radar APROS: detección semanal de oportunidades comerciales",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:migrate": "node scripts/migrate.mjs up",
+    "db:rollback": "node scripts/migrate.mjs down",
+    "db:seed": "tsx scripts/seed-dev.ts",
+    "audit:deps": "npm audit --audit-level=high"
+  },
+  "dependencies": {
+    "@fontsource/questrial": "5.3.0",
+    "@fontsource/roboto": "5.3.0",
+    "next": "16.4.5",
+    "node-pg-migrate": "9.0.0",
+    "openid-client": "6.8.9",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0"
+  },
+  "type": "module"
+}
