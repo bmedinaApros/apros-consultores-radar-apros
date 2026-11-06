@@ -32,3 +32,9 @@
 | D-28 | Sesiones propias en PostgreSQL (token aleatorio con hash SHA-256) en lugar de una biblioteca de autenticación. | Permite revocación inmediata y menos dependencias; solo hay un proveedor (Google). | Sí |
 | D-29 | Auditoría con cadena de hashes y triggers de solo inserción. | Detecta manipulación aun si alguien con acceso a la base la intenta. | Sí |
 | D-30 | Docker Compose levanta solo PostgreSQL; la aplicación corre con `npm run dev` en la Mac. | Más simple y rápido de depurar; el `Dockerfile` queda para producción. | Sí |
+| D-31 | Fase 2 implementa el marco de fuentes y CSV/manual; no implementa proveedores reales (SUNAT, SEACE, SMV, Google Places). Solo existe la fuente simulada. | Cada fuente real exige revisar sus términos antes de escribir código. | Sí |
+| D-32 | Un duplicado exacto (RUC o dominio) nunca se crea; uno parecido por nombre lo decide una persona. Nombres que difieren en un número no se consideran duplicados. | Evitar tanto duplicados como falsos positivos («Sucursal 1» y «Sucursal 2»). | Sí |
+| D-33 | Deshacer un lote elimina lo creado que sigue en «Detectada»; lo que ya avanzó se conserva y los datos fusionados en empresas existentes no se revierten. | Evita perder trabajo comercial. | Sí |
+| D-34 | Un sitio web de red social o correo gratuito se descarta como dominio de la empresa. | El analizador solo debe visitar el sitio propio; esto evita apuntar a LinkedIn o Google. | Sí |
+| D-35 | El rubro lo confirma una persona; el sistema solo lo deja «por clasificar» si falta o es dudoso. | Principio de credibilidad. | Sí |
+| D-36 | Los duplicados por nombre se comparan en memoria (índice cargado una vez por lote). | Adecuado para miles de empresas; si crece a cientos de miles, se pasa a índice en base. | Sí |

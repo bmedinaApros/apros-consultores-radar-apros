@@ -91,7 +91,9 @@ export async function listUsers(db: Queryable = pool()): Promise<UserRow[]> {
   return res.rows;
 }
 
-export class UserUpdateError extends Error {}
+export class UserUpdateError extends Error {
+  override name = "UserUpdateError";
+}
 
 export async function updateUserAccess(
   actor: { id: string; email: string },
