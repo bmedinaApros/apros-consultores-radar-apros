@@ -2,7 +2,7 @@
 
 Aplicación web interna de APROS Consultores Digitales. Su propósito: **entregar cada semana una lista priorizada de empresas peruanas a las que APROS podría ofrecer sus servicios**, con la evidencia de cada hallazgo y la revisión de un consultor antes de que un vendedor la use.
 
-Estado: **fase 1 de 8 (Fundaciones)**. Hoy incluye acceso con Google Workspace, roles, auditoría, sistema de diseño y CI. El descubrimiento, el análisis y la lista semanal llegan en las fases 2 a 4. Ver `docs/PLAN.md`.
+Estado: **fase 2 de 8 (Empresas y descubrimiento)**. Incluye acceso con Google Workspace, roles, auditoría, importación CSV con deduplicación, lista de no contactar, clientes activos, rubros editables y el marco de fuentes. El análisis web y la lista semanal llegan en las fases 3 y 4. Ver `docs/PLAN.md`.
 
 ## Requisitos (Mac)
 
@@ -42,6 +42,12 @@ npm run dev
 ```
 
 Abre http://localhost:3000. En local verás un **acceso de desarrollo** con cinco usuarios ficticios, uno por rol. Ese acceso no existe en producción (ver `docs/SECURITY.md`).
+
+## Probar la importación
+
+Con la aplicación corriendo y el acceso de desarrollo como administrador, ve a **Importar CSV** y sube `docs/ejemplos/empresas-demo.csv` (datos ficticios). Verás filas válidas, errores, un duplicado exacto y un posible duplicado que debes resolver antes de confirmar. Después puedes **Deshacer este lote**.
+
+En **Fuentes** puedes aprobar los términos de la fuente simulada, activarla y ejecutar un descubrimiento de prueba.
 
 ## Comandos
 

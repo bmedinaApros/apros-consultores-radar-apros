@@ -125,3 +125,9 @@ input:focus-visible, select:focus-visible { box-shadow: var(--focus-ring); }
   .login-hero h1 { font-size: 28px; }
   .login-panel { padding: var(--space-md) var(--space-sm); }
 }
+
+.badge-warn { color: var(--color-warning-on-light); }
+.badge-info { color: var(--apros-indigo); }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-sm); }
+.stat { font: 400 40px/1 var(--font-display); color: var(--apros-indigo); }
+.inline-form { display: inline-flex; gap: var(--space-xs); align-items: center; flex-wrap: wrap; }

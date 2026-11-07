@@ -15,6 +15,7 @@ export const PERMISSIONS = [
   "audit.read",
   "catalog.manage", // rubros, señales, modelos, servicios
   "sources.manage",
+  "dnc.manage",
   "companies.read",
   "companies.write",
   "companies.import",
@@ -32,6 +33,7 @@ const MATRIX: Record<Role, readonly Permission[]> = {
   admin: PERMISSIONS,
   sales_lead: [
     "audit.read",
+    "dnc.manage",
     "companies.read",
     "companies.write",
     "companies.import",

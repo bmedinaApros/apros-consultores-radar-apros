@@ -1,0 +1,11 @@
+razon_social,nombre_comercial,sitio_web,ruc,rubro,subrubro,ciudad,responsable
+Constructora Demo Andina S.A.C. (ficticia),Demo Andina,https://www.demo-andina.example.com,20100070970,Inmobiliario,Vivienda,Lima,
+Clínica Demo del Sur S.A. (ficticia),,clinica-demo-sur.example.com,,Salud,,Arequipa,
+Colegio Demo Horizonte E.I.R.L. (ficticia),,colegio-demo-horizonte.example.com,,Educación,Básica,Lima,
+Tienda Demo Moda S.A.C. (ficticia),,tienda-demo-moda.example.com,,Retail,,Lima,
+Tienda Demo Moda SAC (ficticia),,tienda-demo-moda-2.example.com,,Retail,,Lima,
+Industrias Demo Acero S.A. (ficticia),,industrias-demo-acero.example.com,,Industria,,Callao,
+Estudio Demo Contable S.A.C. (ficticia),,https://linkedin.com/company/estudio-demo,,Servicios profesionales,,Lima,
+Empresa Demo RUC Inválido S.A.C. (ficticia),,ruc-malo.example.com,12345678901,Retail,,Lima,
+Distribuidora Demo Consumo S.A.C. (ficticia),,distribuidora-demo.example.com,,Rubro Desconocido,,Lima,
+,,sin-nombre.example.com,,Retail,,Lima,

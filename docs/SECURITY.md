@@ -24,6 +24,20 @@ Referencia: OWASP ASVS nivel 2 y OWASP Top 10, incluidos los riesgos de aplicaci
 | Secretos | Solo variables de entorno; `.env` ignorado por git; `.env.example` sin valores reales; escaneo con gitleaks en CI | CI |
 | Dependencias | `package-lock.json`; `npm audit --audit-level=high` en CI y Dependabot semanal | CI |
 
+## Añadido en la fase 2
+
+| Control | Cómo | Prueba |
+|---|---|---|
+| Subida de archivos | Solo `.csv`, UTF-8 válido, sin bytes nulos, máximo 5 MB, 5000 filas, 30 columnas, 500 caracteres por celda; la ruta verifica origen, sesión, permiso y tasa (20 por hora) | `csv.test.ts`; `curl`: 401 sin sesión, 403 con origen ajeno |
+| Inyección de fórmulas | Todo CSV exportado (informe de errores) neutraliza celdas que empiezan con `=`, `+`, `-`, `@`, tab o retorno | `csv.test.ts`, `import.test.ts` |
+| Dominios seguros para el analizador | Se rechazan IPs (v4/v6), nombres internos o reservados, redes sociales y correos gratuitos; así el analizador nunca recibe una IP ni LinkedIn/Google como objetivo | `normalize.test.ts` |
+| No contactar | Se aplica al importar, descubrir, crear, editar y al confirmar un lote (se vuelve a comprobar); no se puede esquivar cambiando el dominio | `import.test.ts`, `companies.test.ts` |
+| Clientes activos | Se excluyen por RUC, dominio o nombre | `import.test.ts` |
+| Autorización por objeto | Un vendedor solo edita lo propio o lo libre y no reasigna a terceros; consultor y lectura no escriben | `companies.test.ts`; verificado en navegador |
+| Fuentes | Desactivadas por defecto; la base impide activarlas sin términos aprobados; las no implementadas no se pueden activar | `companies.test.ts` |
+| Mínimos privilegios | `radar_app` solo tiene los permisos de las tablas nuevas que necesita | `migrations/` |
+| Auditoría | Altas, ediciones, importaciones, decisiones, deshacer, lista de no contactar, rubros, fuentes y descubrimiento quedan registrados | `import.test.ts` |
+
 ## Límites conocidos de la fase 1
 
 - **Limitador en memoria:** sirve para una sola instancia. Si se despliegan varias, hay que moverlo a PostgreSQL.
@@ -36,7 +50,6 @@ Referencia: OWASP ASVS nivel 2 y OWASP Top 10, incluidos los riesgos de aplicaci
 
 - SSRF y contenido hostil del analizador web (fase 3), incluidos los proveedores de fuentes.
 - Inyección de prompts y validación de salida del modelo (fase 5).
-- Inyección de fórmulas en CSV y validación de archivos (fase 2).
 - Rate limiting en importación, descubrimiento, análisis y generación con IA.
 - Flujo de aprobación forzado en servidor para diagnósticos (fase 5).
 - Auditoría de accesos de lectura, exportaciones y cambios de puntaje.
