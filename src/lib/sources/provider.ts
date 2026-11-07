@@ -47,7 +47,7 @@ export const PLANNED_PROVIDERS: PlannedProvider[] = [
   { code: "sunat_padron", name: "Padrón de RUC de SUNAT", termsDoc: "docs/sources/sunat_padron.md", note: "Datos públicos; revisar condiciones de uso y que probablemente no trae sitio web." },
   { code: "seace", name: "SEACE / OSCE (compras públicas)", termsDoc: "docs/sources/seace.md", note: "Empresas que venden al Estado; revisar términos." },
   { code: "smv", name: "SMV / Bolsa de Valores de Lima", termsDoc: "docs/sources/smv.md", note: "Empresas medianas y grandes; revisar términos." },
-  { code: "google_places", name: "Google Places API (de pago)", termsDoc: "docs/sources/google_places.md", note: "Requiere clave, tope mensual y revisar límites de almacenamiento." },
+  { code: "google_places", name: "Google Places API (de pago)", termsDoc: "docs/sources/google_places.md", note: "Descartada: sus términos prohíben guardar nombres y direcciones (ver el documento)." },
 ];
 
 export const IMPLEMENTED_PROVIDERS: CompanySourceProvider[] = [simulatedProvider];

@@ -11,7 +11,7 @@ Ninguna fuente externa se activa sin tres cosas: (1) un documento aquí con la r
 | Padrón de RUC de SUNAT | No | Pendiente | Sin revisar |
 | SEACE / OSCE | No | Pendiente | Sin revisar |
 | SMV / Bolsa de Valores de Lima | No | Pendiente | Sin revisar |
-| Google Places API | No | Pendiente | Sin revisar; requiere clave y tope mensual |
+| Google Places API | No | `google_places.md` | **Rechazada** (2026-11-07): los términos prohíben guardar nombres y direcciones |
 
 No se afirma nada sobre los términos de las fuentes pendientes hasta revisarlos en su fuente oficial.
 
