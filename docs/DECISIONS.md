@@ -45,3 +45,12 @@
 | D-41 | Cola con pg-boss en su propio esquema `pgboss`, creado por la migración; la aplicación recibe permisos solo sobre ese esquema. | Mínimos privilegios; sin Redis. | Sí |
 | D-42 | Caché de análisis por empresa, versión del analizador y vigencia (7 días, configurable); se puede forzar uno nuevo. | Controla costo y carga sobre sitios ajenos. | Sí |
 | D-43 | Cliente de PageSpeed escrito pero desactivado sin clave de API; se prueba con un proveedor simulado. | No hay clave ni acceso al servicio real en el entorno de desarrollo. | Sí |
+| D-44 | Puntaje determinístico con reglas declarativas por dimensión; los puntos se ponderan por la confianza de la observación (1, 0,75, 0,5). | Una ausencia en HTML estático no es una certeza; hace el puntaje explicable. | Sí |
+| D-45 | Una señal «no verificable» no suma ni resta y solo baja la cobertura de datos; una señal que no aplica al rubro no existe para esa empresa. | Cumple «un fallo de lectura nunca es un hallazgo negativo» y «lo que no aplica no resta». | Sí |
+| D-46 | Los modelos y puntajes de ejemplo son hipótesis iniciales sin calibrar; se calibran en la fase 7. | No hay datos de ventas de APROS todavía. | Sí |
+| D-47 | Un modelo general y un modelo de ejemplo por rubro; un rubro nuevo usa el general hasta que se cree el suyo. | Pide el prompt: modelo por rubro, versionado, pesos que suman 100. | Sí |
+| D-48 | Un puntaje solo entra a la lista si su banda es «ventas» o «nurturing», tiene cobertura mínima de datos y supera el puntaje mínimo adicional. Un sitio ilegible no entra por «sin datos suficientes», no por puntaje bajo. | Evita listar por falta de información. | Sí |
+| D-49 | Una empresa ya listada reaparece solo si cambia una señal relevante del sitio; los ajustes o criterios manuales no la hacen reaparecer. | Evitar repetir la misma lista y el ruido por cambios humanos. | Sí |
+| D-50 | Un vendedor solo ve elementos aprobados que son suyos o no tienen responsable. | El consultor revisa antes de que un vendedor use la empresa. | Sí |
+| D-51 | Los servicios sugeridos se muestran siempre como hipótesis a validar, con su motivo. | D-23 (la IA y las reglas no confirman hechos). | Sí |
+| D-52 | En esta fase no se usa IA: el puntaje, los motivos y las sugerencias son determinísticos. La IA entra en la fase 5 (diagnóstico). | Menos costo y menos riesgo; cumple «la IA no decide si una señal existe». | Sí |

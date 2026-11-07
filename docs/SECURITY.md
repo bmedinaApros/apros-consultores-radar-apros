@@ -66,6 +66,22 @@ Las pruebas de SSRF usan servidores locales con direcciones públicas simuladas 
 
 **No probado todavía:** la degradación https→http en una redirección real (el código la bloquea; falta una prueba con dos servidores TLS); el cliente real de PageSpeed; el comportamiento frente a sitios reales; aislamiento de red del proceso worker (hoy depende del servidor donde se despliegue: conviene que el worker no tenga ruta a la red interna aunque el código ya la bloquee).
 
+## Añadido en la fase 4: puntaje, lista semanal y revisión
+
+| Control | Cómo | Prueba |
+|---|---|---|
+| Condiciones sin código ejecutable | Las reglas de puntaje, los descalificadores y las reglas de servicios son datos validados con un esquema (señal, estado, campo, operador, valor); no hay `eval` ni expresiones regulares del administrador | `scoring-engine.test.ts` |
+| Modelos validados e inmutables | Los pesos deben sumar 100, umbrales coherentes, identificadores únicos; una versión no se modifica (trigger) | `scoring-service.test.ts` |
+| Puntajes, observaciones, criterios y ajustes de solo inserción | Triggers; la aplicación ni siquiera tiene permiso de `UPDATE` sobre `scores` | `scoring-service.test.ts` |
+| Lista semanal inmutable | Trigger que solo permite cambiar revisión y asignación | `weekly.test.ts` |
+| Revisión humana forzada en el servidor | Un vendedor no ve nada pendiente ni rechazado, en la lista ni en la bandeja, aunque pida otra URL; la aprobación se vuelve a comprobar contra no contactar | `weekly.test.ts` (y mutación que lo rompe) |
+| Permisos | `weekly.review` (administrador, líder, consultor); `weekly.run`, `scoring.adjust`, `catalog.manage` por rol; un vendedor solo analiza y edita lo propio o lo libre | `rbac.test.ts`, `weekly.test.ts`, `scoring-service.test.ts` |
+| Ajustes con motivo | Obligatorio, acotado a ±50, auditado | `scoring-service.test.ts` |
+| Una ejecución a la vez | Se rechaza una segunda; cola con deduplicación | `weekly.test.ts`, `queue.test.ts` |
+| Presupuesto | Tope de sitios por ejecución; al agotarse se marca cobertura parcial y se conserva lo hecho | `weekly.test.ts` |
+| Mínimos privilegios | `radar_app` solo tiene los permisos que necesita en cada tabla nueva | `migrations/` |
+| Errores esperados | Los errores de validación se muestran como mensaje, no como error 500 | verificado en el navegador |
+
 ## Límites conocidos de la fase 1
 
 - **Limitador en memoria:** sirve para una sola instancia. Si se despliegan varias, hay que moverlo a PostgreSQL.

@@ -80,6 +80,11 @@ export interface DiscoveryResult { runId: string; found: number; created: number
  */
 export async function runDiscovery(actor: ActorInfo, code: string): Promise<DiscoveryResult> {
   requirePermission(actor, "sources.manage");
+  return runDiscoveryInternal(code, actor.id, actor);
+}
+
+/** Ejecución interna (también usada por la ejecución semanal programada, sin persona detrás). */
+export async function runDiscoveryInternal(code: string, startedBy: string | null, actor?: ActorInfo): Promise<DiscoveryResult> {
   const provider = IMPLEMENTED_PROVIDERS.find((x) => x.code === code);
   if (!provider) throw new SourceError("Fuente no implementada");
   await ensureRows();
@@ -87,7 +92,7 @@ export async function runDiscovery(actor: ActorInfo, code: string): Promise<Disc
   if (!st.rows[0]?.enabled) throw new SourceError("La fuente está desactivada");
 
   const run = await pool().query<{ id: string }>(
-    `INSERT INTO discovery_runs (provider_code, started_by) VALUES ($1, $2) RETURNING id`, [code, actor.id]);
+    `INSERT INTO discovery_runs (provider_code, started_by) VALUES ($1, $2) RETURNING id`, [code, startedBy]);
   const runId = run.rows[0]!.id;
   const result: DiscoveryResult = { runId, found: 0, created: 0, duplicates: 0, blocked: 0, excluded: 0 };
   try {
@@ -103,7 +108,7 @@ export async function runDiscovery(actor: ActorInfo, code: string): Promise<Disc
         else if (ev.status === "excluded_client") result.excluded++;
         else if (ev.status === "duplicate" || ev.status === "possible_duplicate") result.duplicates++;
         else if (ev.status === "valid" && prepared) {
-          const id = await insertCompany(c, prepared, { createdBy: actor.id, sourceCode: code, sourceRef: runId });
+          const id = await insertCompany(c, prepared, { createdBy: startedBy, sourceCode: code, sourceRef: runId });
           index.add(id, { normalizedName: prepared.normalizedName, domain: prepared.domain, ruc: prepared.ruc });
           result.created++;
         }
@@ -112,7 +117,7 @@ export async function runDiscovery(actor: ActorInfo, code: string): Promise<Disc
     await pool().query(
       `UPDATE discovery_runs SET status='completed', found=$2, created=$3, duplicates=$4, blocked=$5, excluded=$6, finished_at=now() WHERE id=$1`,
       [runId, result.found, result.created, result.duplicates, result.blocked, result.excluded]);
-    await audit({ actorId: actor.id, actorEmail: actor.email, action: "discovery.completed", entityType: "discovery_run", entityId: runId, metadata: { provider: code, ...result } });
+    await audit({ actorId: startedBy, actorEmail: actor?.email ?? null, action: "discovery.completed", entityType: "discovery_run", entityId: runId, metadata: { provider: code, ...result } });
     return result;
   } catch (e) {
     await pool().query(`UPDATE discovery_runs SET status='failed', error=$2, finished_at=now() WHERE id=$1`, [runId, e instanceof Error ? e.message.slice(0, 300) : "error"]);

@@ -3,6 +3,8 @@ import { env } from "../env";
 import { log } from "../logger";
 
 export const ANALYZE_QUEUE = "analyze-company";
+export const WEEKLY_QUEUE = "weekly-run";
+export const WEEKLY_SCHEDULE = "weekly-run-schedule";
 
 export interface AnalyzeJob {
   companyId: string;
@@ -28,6 +30,7 @@ export function getBoss(opts: { supervise?: boolean } = {}): Promise<PgBoss> {
     boss.on("error", (e: Error) => log("error", "error en la cola de trabajos", { error: e.message }));
     await boss.start();
     await boss.createQueue(ANALYZE_QUEUE, { policy: "short" });
+    await boss.createQueue(WEEKLY_QUEUE, { policy: "short" });
     return boss;
   })();
   return g.__radarBoss;
@@ -51,4 +54,22 @@ export async function stopBoss(): Promise<void> {
     await b.stop({ graceful: true });
     g.__radarBoss = undefined;
   }
+}
+
+export interface WeeklyJob { triggeredBy: string | null; kind: "manual" | "schedule" }
+
+/** Encola la ejecución semanal. Si ya hay una pendiente no se duplica. */
+export async function enqueueWeeklyRun(job: WeeklyJob): Promise<string | null> {
+  const boss = await getBoss();
+  return boss.send(WEEKLY_QUEUE, job, { singletonKey: "weekly-run", retryLimit: 0, expireInSeconds: 6 * 3600 });
+}
+
+/** Programa (o retira) la ejecución semanal según la configuración. Hora de Lima. */
+export async function syncWeeklySchedule(enabled: boolean, cron: string): Promise<void> {
+  const boss = await getBoss();
+  if (!enabled) {
+    await boss.unschedule(WEEKLY_QUEUE, WEEKLY_SCHEDULE).catch(() => undefined);
+    return;
+  }
+  await boss.schedule(WEEKLY_QUEUE, cron, { triggeredBy: null, kind: "schedule" } satisfies WeeklyJob, { tz: "America/Lima", key: WEEKLY_SCHEDULE });
 }

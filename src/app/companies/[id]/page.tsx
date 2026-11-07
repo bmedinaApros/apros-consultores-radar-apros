@@ -9,7 +9,14 @@ import { companySources, getCompany, listIndustries } from "@/lib/companies/serv
 import { findDoNotContact } from "@/lib/companies/exclusions";
 import { listUsers } from "@/lib/users";
 import { CLASSIFICATION_LABELS, STAGE_LABELS } from "@/lib/labels";
-import { analyzeAction, updateCompanyAction } from "../actions";
+import { adjustmentAction, analyzeAction, manualCriteriaAction, recomputeScoreAction, updateCompanyAction } from "../actions";
+import { pool } from "@/lib/db";
+import { ScorePanel } from "@/components/score-panel";
+import { latestAdjustment, latestManual, latestScore, reproduceScore } from "@/lib/scoring/service";
+import { MANUAL_CRITERIA } from "@/lib/scoring/model";
+import { listOffers, matchServices } from "@/lib/offers/service";
+import { buildFacts, type ObservationInput } from "@/lib/scoring/engine";
+import { can } from "@/lib/rbac";
 import { SignalsPanel } from "@/components/signals-panel";
 import { canAnalyze, latestCompletedRunId, listIndustrySignals, listRuns, observationsForRun, signalChanges } from "@/lib/analyzer/service";
 
@@ -29,6 +36,14 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
   const runId = await latestCompletedRunId(id);
   const [runs, rows, changes, indSignals] = await Promise.all([listRuns(id, 5), runId ? observationsForRun(runId) : Promise.resolve([]), signalChanges(id), listIndustrySignals()]);
   const industryNames = Object.fromEntries(indSignals.map((x) => [`industry.${x.slug}`, x.name]));
+  const [score, manual, adjustment] = await Promise.all([latestScore(id), latestManual(id), latestAdjustment(id)]);
+  const repro = score ? await reproduceScore(score.id).then((x) => x.matches).catch(() => null) : null;
+  let services: Awaited<ReturnType<typeof matchServices>> = [];
+  if (score) {
+    const obs = await pool().query<ObservationInput>(`SELECT id::text AS id, signal_code, status, kind, value, confidence, evidence_url FROM signal_observations WHERE id = ANY($1::bigint[])`, [score.observation_ids]);
+    services = matchServices(await listOffers(false), buildFacts({ observations: obs.rows, manual: score.manual_snapshot, company: score.company_snapshot, adjustment: score.adjustment, asOf: new Date(score.as_of).toISOString() }));
+  }
+  const canManual = canModifyOwned({ id: user.userId, role: user.role }, { ownerId: company.owner_id }, "companies.write");
   const mayAnalyze = canAnalyze({ id: user.userId, role: user.role }, company);
   const editable = canModifyOwned({ id: user.userId, role: user.role }, { ownerId: company.owner_id }, "companies.write");
   const manager = user.role === "admin" || user.role === "sales_lead";
@@ -82,6 +97,37 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
           </ul>
         )}
         {rows.length > 0 ? <SignalsPanel rows={rows} industryNames={industryNames} changes={changes} /> : <div className="card empty"><p>Aún no hay señales. Lanza un análisis para obtenerlas.</p></div>}
+      </section>
+      <section aria-labelledby="puntaje" className="stack">
+        <h2 id="puntaje">Puntaje</h2>
+        {score ? (
+          <ScorePanel total={Number(score.total)} band={score.band} computed={Number(score.computed)} breakdown={score.breakdown} modelName={score.model_name} modelVersion={score.model_version}
+            computedAt={fmt.format(score.computed_at)} reproducible={repro} services={services} adjustment={score.adjustment} />
+        ) : <div className="card empty"><p>Aún no hay puntaje. Se calcula cuando existe un análisis web completado.</p></div>}
+        {mayAnalyze && runId && <form action={recomputeScoreAction}><input type="hidden" name="id" value={company.id} /><button className="btn btn-secondary btn-small" type="submit">Recalcular puntaje</button></form>}
+        <form action={manualCriteriaAction} className="card stack">
+          <input type="hidden" name="id" value={company.id} />
+          <fieldset disabled={!canManual} className="stack">
+            <legend><strong>Criterios manuales</strong> <span className="muted">(no se pueden observar en la web; los captura una persona)</span></legend>
+            {MANUAL_CRITERIA.map((c) => (
+              <div key={c.key}><label htmlFor={`m-${c.key}`}>{c.label}</label>
+                <select id={`m-${c.key}`} name={c.key} defaultValue={manual[c.key] ?? ""} aria-describedby={`h-${c.key}`}>
+                  <option value="">Sin capturar</option>{c.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select><span id={`h-${c.key}`} className="muted"> {c.help}</span></div>
+            ))}
+            <button className="btn btn-primary btn-small" type="submit">Guardar criterios</button>
+          </fieldset>
+        </form>
+        {can(user.role, "scoring.adjust") && (
+          <form action={adjustmentAction} className="card stack">
+            <input type="hidden" name="id" value={company.id} />
+            <fieldset className="stack"><legend><strong>Ajuste manual del puntaje</strong> <span className="muted">(el motivo es obligatorio y queda en la auditoría; 0 retira el ajuste)</span></legend>
+            <div><label htmlFor="delta">Puntos (−50 a 50)</label><input id="delta" name="delta" type="number" min={-50} max={50} step="0.5" required defaultValue={adjustment?.delta ?? 0} /></div>
+            <div><label htmlFor="reason">Motivo *</label><input id="reason" name="reason" required maxLength={300} defaultValue={adjustment?.reason ?? ""} /></div>
+            <button className="btn btn-primary btn-small" type="submit">Guardar ajuste</button>
+            </fieldset>
+          </form>
+        )}
       </section>
       <section className="card" aria-labelledby="fuentes">
         <h2 id="fuentes">Procedencia de los datos</h2>

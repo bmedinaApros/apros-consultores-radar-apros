@@ -79,3 +79,44 @@ export async function analyzeAction(formData: FormData): Promise<void> {
     return id ? "Análisis encolado. Se ejecuta en segundo plano (el worker debe estar corriendo)." : "Ya hay un análisis pendiente para esta empresa.";
   });
 }
+
+import { MANUAL_CRITERIA } from "@/lib/scoring/model";
+import { latestManual, scoreCompany, setManualCriterion, setScoreAdjustment } from "@/lib/scoring/service";
+
+/** Guarda los criterios manuales que cambiaron (no se infieren de la web; quedan etiquetados como manuales). */
+export async function manualCriteriaAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = z.string().uuid().parse(formData.get("id"));
+  return guarded(`/companies/${id}`, async () => {
+    const current = await latestManual(id);
+    let changed = 0;
+    for (const c of MANUAL_CRITERIA) {
+      const v = String(formData.get(c.key) ?? "");
+      if (v !== (current[c.key] ?? "")) { await setManualCriterion(toActor(user), id, c.key, v); changed++; }
+    }
+    if (changed) await scoreCompany(id);
+    return changed ? `${changed} criterio(s) manual(es) guardado(s) y puntaje recalculado.` : "No hubo cambios.";
+  });
+}
+
+export async function adjustmentAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const d = z.object({ id: z.string().uuid(), delta: z.coerce.number().min(-50).max(50), reason: z.string().max(300) }).parse(Object.fromEntries(formData));
+  return guarded(`/companies/${d.id}`, async () => {
+    await setScoreAdjustment(toActor(user), d.id, d.delta, d.reason);
+    await scoreCompany(d.id);
+    return d.delta === 0 ? "Ajuste retirado." : "Ajuste guardado y puntaje recalculado.";
+  });
+}
+
+export async function recomputeScoreAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = z.string().uuid().parse(formData.get("id"));
+  return guarded(`/companies/${id}`, async () => {
+    const company = await getCompany(id);
+    if (!company) throw new CompanyError("Empresa no encontrada");
+    if (!canAnalyze({ id: user.userId, role: user.role }, company)) throw new ForbiddenError("No puedes recalcular esta empresa");
+    const r = await scoreCompany(id);
+    return !r ? "Aún no hay análisis completado: no se puede puntuar." : r.created ? "Puntaje recalculado." : "El puntaje ya estaba al día (nada cambió).";
+  });
+}

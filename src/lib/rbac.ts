@@ -22,6 +22,7 @@ export const PERMISSIONS = [
   "analysis.run",
   "weekly.read",
   "weekly.run",
+  "weekly.review",
   "scoring.adjust",
   "diagnostics.write",
   "diagnostics.approve",
@@ -40,6 +41,7 @@ const MATRIX: Record<Role, readonly Permission[]> = {
     "companies.import",
     "weekly.read",
     "weekly.run",
+    "weekly.review",
     "scoring.adjust",
     "diagnostics.write",
     "pipeline.write",
@@ -50,6 +52,7 @@ const MATRIX: Record<Role, readonly Permission[]> = {
   consultant: [
     "companies.read",
     "weekly.read",
+    "weekly.review",
     "scoring.adjust",
     "diagnostics.write",
     "diagnostics.approve",

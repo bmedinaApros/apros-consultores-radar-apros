@@ -12,6 +12,8 @@ interface NavItem {
 export function AppShell({ user, current, children }: { user: SessionUser; current: string; children: React.ReactNode }) {
   const items: NavItem[] = [
     { href: "/", label: "Inicio", show: true },
+    { href: "/weekly", label: "Lista semanal", show: can(user.role, "weekly.read") },
+    { href: "/inbox", label: "Bandeja", show: can(user.role, "weekly.read") },
     { href: "/companies", label: "Empresas", show: can(user.role, "companies.read") },
     { href: "/companies/import", label: "Importar CSV", show: can(user.role, "companies.import") },
     { href: "/companies/duplicates", label: "Duplicados", show: user.role === "admin" || user.role === "sales_lead" },
@@ -19,6 +21,9 @@ export function AppShell({ user, current, children }: { user: SessionUser; curre
     { href: "/admin/clients", label: "Clientes activos", show: can(user.role, "catalog.manage") },
     { href: "/admin/industries", label: "Rubros", show: can(user.role, "catalog.manage") },
     { href: "/admin/signals", label: "Señales por rubro", show: can(user.role, "catalog.manage") },
+    { href: "/admin/models", label: "Modelos de puntaje", show: can(user.role, "catalog.manage") },
+    { href: "/admin/services", label: "Servicios de APROS", show: can(user.role, "catalog.manage") },
+    { href: "/admin/weekly", label: "Ejecución semanal", show: can(user.role, "catalog.manage") },
     { href: "/admin/sources", label: "Fuentes", show: can(user.role, "sources.manage") },
     { href: "/admin/users", label: "Usuarios", show: can(user.role, "users.manage") },
     { href: "/admin/audit", label: "Auditoría", show: can(user.role, "audit.read") },
