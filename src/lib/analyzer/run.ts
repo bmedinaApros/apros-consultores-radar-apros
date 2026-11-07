@@ -1,4 +1,5 @@
 import { audit } from "../audit";
+import { markStaleForCompany } from "../diagnostics/stale";
 import { pool } from "../db";
 import { env } from "../env";
 import { findActiveClient, findDoNotContact } from "../companies/exclusions";
@@ -216,6 +217,7 @@ export async function analyzeCompany(
     }
     await pool().query(`UPDATE analysis_runs SET status='completed', pages_fetched=$2, finished_at=now() WHERE id=$1`, [runId, fetched]);
     if (home && company.stage === "detected") await pool().query(`UPDATE companies SET stage='analyzed', updated_at=now() WHERE id=$1 AND stage='detected'`, [companyId]);
+    await markStaleForCompany(companyId).catch(() => undefined); // si cambió la evidencia, el diagnóstico queda desactualizado
     await audit({ actorId: opts.triggeredBy ?? null, action: "analysis.completed", entityType: "company", entityId: companyId, metadata: { runId, pages: fetched, signals: observations.length } });
     return { runId, status: "completed", cached: false };
   } catch (e) {

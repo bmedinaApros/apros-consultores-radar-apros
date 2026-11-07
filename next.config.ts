@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   output: "standalone",
+  serverExternalPackages: ["pdfkit", "pptxgenjs"],
+  // pdfkit lee sus métricas de fuentes (.afm) del disco; hay que incluirlas en la salida standalone
+  outputFileTracingIncludes: { "/api/diagnostics/[id]/export": ["./assets/**/*", "./node_modules/pdfkit/js/data/**/*"] },
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {

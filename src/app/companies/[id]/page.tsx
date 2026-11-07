@@ -18,6 +18,7 @@ import { listOffers, matchServices } from "@/lib/offers/service";
 import { buildFacts, type ObservationInput } from "@/lib/scoring/engine";
 import { can } from "@/lib/rbac";
 import { SignalsPanel } from "@/components/signals-panel";
+import { generateOneAction } from "@/app/diagnostics/actions";
 import { canAnalyze, latestCompletedRunId, listIndustrySignals, listRuns, observationsForRun, signalChanges } from "@/lib/analyzer/service";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
     companySources(id), listIndustries(), listUsers(), findDoNotContact({ name: company.legal_name, domain: company.domain, ruc: company.ruc }),
   ]);
   const runId = await latestCompletedRunId(id);
+  const diag = (await pool().query<{ id: string }>(`SELECT id FROM diagnostics WHERE company_id = $1`, [id])).rows[0];
   const [runs, rows, changes, indSignals] = await Promise.all([listRuns(id, 5), runId ? observationsForRun(runId) : Promise.resolve([]), signalChanges(id), listIndustrySignals()]);
   const industryNames = Object.fromEntries(indSignals.map((x) => [`industry.${x.slug}`, x.name]));
   const [score, manual, adjustment] = await Promise.all([latestScore(id), latestManual(id), latestAdjustment(id)]);
@@ -88,6 +90,13 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
             <input type="hidden" name="id" value={company.id} />
             <button className="btn btn-primary btn-small" type="submit" name="force" value="0">{runId ? "Reutilizar o actualizar análisis" : "Analizar ahora"}</button>
             {runId && <button className="btn btn-secondary btn-small" type="submit" name="force" value="1">Forzar un análisis nuevo</button>}
+          </form>
+        )}
+        {can(user.role, "diagnostics.write") && runId && !dnc && (
+          <form action={generateOneAction} className="inline-form">
+            <input type="hidden" name="companyId" value={company.id} />
+            <button className="btn btn-secondary btn-small" type="submit">Generar diagnóstico con IA</button>
+            {diag && <Link href={`/diagnostics/${diag.id}`}>Ver diagnóstico existente</Link>}
           </form>
         )}
         {!company.domain && <p className="muted">La empresa no tiene sitio web conocido; no se puede analizar.</p>}
