@@ -1,27 +1,25 @@
 # Plan v2: fuentes gratuitas, base amplia y nuevo menú
 
-Estado: **propuesta, pendiente de aprobación. No se implementa nada hasta que se apruebe.**
-Fecha: 2026-11-07. Base: ramas `feat/fase-1…5` (PR #1 a #6, aún en borrador) y `feat/fase-6-descubrimiento` (solo documenta el rechazo de Google Places).
+Estado: **v2.1 revisada con tus respuestas del 2026-11-07. Pendiente de tu aprobación; no se implementa nada hasta entonces.**
+Fecha: 2026-11-07. Base: `main`, que ya integra las fases 1 a 5 (PR #1 a #6 mergeados, CI en verde).
 
 Se mantiene todo lo definido en el prompt original (seguridad, revisión humana, evidencia trazable, multirrubro, marca APROS, datos ficticios hasta la aprobación de tu jefe) salvo lo que este plan modifica. Las modificaciones están en la sección 9.
 
 ---
 
-## 0. Resumen y lo que necesito de ti
+## 0. Tus respuestas y lo que cambia
 
-**Lo esencial del diseño.** El padrón vive en una tabla propia (`registry_companies`), separada de `companies`. `companies` sigue siendo el conjunto de trabajo: empresas que alguien promovió porque pasan filtros y tienen web. Así el volumen está en la base, pero solo entra al embudo lo filtrado, y la lista semanal, el análisis y los vendedores nunca ven el padrón completo (sección 2).
+| # | Tu respuesta | Efecto en el plan |
+|---|---|---|
+| 1 | Puedo leer la lista corta de dominios | Hecho el 2026-11-07: ver `docs/sources/verificacion-2026-11-07.md` y la sección 3 |
+| 2 | Sí se cargan datos reales | Se levanta D-19 para datos públicos oficiales en tu Mac. Sigue sin haber datos personales de contacto de personas naturales |
+| 3 | Mergear #1 a #6 y partir de `main` | Hecho: los seis PR están en `main` y su CI está en verde. Las fases v2 parten de `main` |
+| 4 | Sin embudo ni proceso de ventas: la herramienta es solo para obtener información | Se eliminan Vender y Resultados (Embudo, Actividades, Panel). Las antiguas fases 6 (trabajo comercial) y 7 (resultados) quedan **canceladas** |
+| 5 | Acceso con usuario y contraseña, sin depender de Google | Nuevo componente de **acceso con clave** (sección 7.3). Reemplaza la decisión D-04 |
+| 6 | Todos pueden ver y promover empresas | Los permisos del padrón se abren a todos los roles con acceso (ver 10.5) |
+| 7 | No hace falta conectar PageSpeed ahora | Se usa sin clave con un tope diario bajo; la clave queda opcional |
 
-**Hallazgo sobre las fuentes.** Desde este entorno de desarrollo **no pude abrir ninguna de las fuentes** (SUNAT, datosabiertos, OECE, OSM/Overpass, Get on Board, directorios, portales de empleo, Meta, Indecopi, PageSpeed). Por eso **ninguna revisión de términos está hecha** y la sección 3 lo dice fuente por fuente. Según tu regla, mientras no se verifique, ningún conector se automatiza: arranca como importación desde archivo o captura asistida. El código es el mismo; lo único que cambia es quién dispara la descarga.
-
-**Decisiones que necesito (detalle en la sección 10):**
-1. ¿Cómo se verifican los términos? Tú los abres y me pegas el texto, o me permites leer una lista corta de dominios.
-2. ¿Se levanta la regla "solo datos ficticios" para datos públicos oficiales (padrón SUNAT, SEACE) en tu Mac?
-3. Base de las ramas v2: ¿mergeamos primero #1 a #6 o apilamos?
-4. Pantallas de **Vender** y **Resultados** (Embudo, Actividades, Panel): hoy no existen. ¿Se construyen dentro de v2 o después?
-5. Permisos que hoy tiene `sales_lead` y chocan con "Configuración solo para administradores" (No contactar, Auditoría).
-6. Clave de PageSpeed (la debes crear tú, gratuita).
-
----
+**Lo que no pude verificar** (sección 3): SEACE/OECE (respondió 403), Computrabajo, Get on Board, CCL, `overpass-api.de` y los términos de todos los directorios y portales. Tampoco encontré en datosabiertos el conjunto «RUC con CIIU» que menciona el pedido. Eso está resuelto como preguntas en la sección 10.
 
 ## 1. Revisión del proyecto actual
 
@@ -47,13 +45,13 @@ Se mantiene todo lo definido en el prompt original (seguridad, revisión humana,
 - La lista de empresas (`/companies`) y la bandeja ya paginan, pero no tienen búsqueda por texto indexada.
 - El pipeline semanal toma como candidatos las empresas con dominio sin análisis reciente. Con una base grande necesita un tope por ejecución y solo debe ver empresas promovidas.
 
-**Qué no existe todavía** (el menú nuevo lo nombra): Embudo, Actividades y visitas, Panel de indicadores, Mis leads como vista propia, Oportunidades públicas, Buscar empresas, vista de Auditorías web. Eran las fases 6 y 7 del plan original.
+**Qué no existe todavía** (el menú nuevo lo nombra): Buscar empresas, Fuentes e importaciones, Oportunidades públicas y la vista de Auditorías web. El embudo, las actividades y el panel de indicadores **no se construirán**: la herramienta es solo para obtener información.
 
 ---
 
 ## 2. Arquitectura
 
-### 2.1 Embudo
+### 2.1 Flujo de datos
 
 ```
 Padrón SUNAT (+CIIU, ubigeo) ──► registry_companies  (millones; solo lectura para el equipo)
@@ -63,10 +61,10 @@ OSM / directorios / CSV ───────► company_candidates   (empresas 
                        «Buscar empresas»: vista previa con conteo, tope por acción
                                           │  promover (revisión humana de dudosos)
                                           ▼
-                companies (conjunto de trabajo) ──► análisis web ──► scoring ──► lista semanal ──► revisión humana ──► vendedor
+                companies (conjunto de trabajo) ──► análisis web ──► scoring ──► lista semanal ──► revisión humana ──► información lista para quien la consulte
 ```
 
-Regla de producto: **estar en el padrón no hace a una empresa un lead.** Un vendedor no ve el padrón; ve solo lo aprobado, como hoy (D-50). Promover requiere permiso y el sistema muestra siempre el conteo antes de ejecutar.
+Regla de producto: **estar en el padrón no hace a una empresa una candidata.** Promover muestra siempre el conteo antes de ejecutar y tiene tope por acción; todos los roles con acceso pueden ver y promover (respuesta 6). La lista semanal conserva su revisión humana; si se mantiene o no la restricción D-50 está en 10.5.
 
 ### 2.2 Decisiones de arquitectura
 
@@ -87,28 +85,26 @@ Regla de producto: **estar en el padrón no hace a una empresa un lead.** Un ven
 
 ## 3. Estado legal de cada fuente
 
-**Cómo leer esta tabla.** "Verificación" dice si leí el texto oficial. **Hoy es "No" para todas**: los hosts no son accesibles desde el entorno de desarrollo (probado el 2026-11-07; resultado de conexión fallida en todos; `github.com` devolvió 403 del proxy). La columna "Afirmado en la solicitud" recoge lo que el pedido indica; **no lo tomo como verificado**. "Decisión provisional" aplica tu regla: sin verificar, nada se automatiza.
+**Cómo leer esta tabla.** Verificación del 2026-11-07, hecha por mí desde el entorno de desarrollo, con User-Agent identificable y sin eludir bloqueos. **No es una revisión legal.** Se leyeron políticas y `robots.txt`; **no se descargó ningún dato**. Cada fuente verificada tiene su `docs/sources/<fuente>.md`; el detalle de lo leído y lo no leído está en `docs/sources/verificacion-2026-11-07.md`.
 
-Cada fuente tendrá su `docs/sources/<fuente>.md` con la plantilla ya existente en `docs/sources/README.md` (URL, licencia, robots, campos, frecuencia, decisión), **escrito en la fase donde se construye, después de verificar** y con fecha. No creo documentos vacíos ahora para no dar una apariencia de revisión que no existe.
-
-| # | Fuente | Acceso previsto | Verificación | Afirmado en la solicitud | Riesgos a revisar | Decisión provisional |
-|---|---|---|---|---|---|---|
-| 1 | SUNAT, Padrón reducido del RUC | Descarga oficial | **No** | Descarga oficial con RUC, razón social, estado, condición, ubigeo, domicilio | Condiciones de uso del archivo; incluye **personas naturales** (datos personales: domicilio) → excluidas por defecto; confirmar formato, codificación y tamaño reales | **Asistido**: el archivo lo descargas tú y Radar lo importa. Pasa a automático si verifico los términos |
-| 2 | datosabiertos.gob.pe, padrón con CIIU | Descarga oficial | **No** | Cruce por RUC para actividad económica; algunos CSV vienen comprimidos | Licencia del recurso, vigencia de la actualización, nombre exacto del conjunto | Igual que la 1 |
-| 3 | OpenStreetMap, Overpass API | API pública | **No** | Negocios con web, teléfono y ubicación; ODbL con atribución | Política de uso de Overpass (frecuencia, tamaño de consulta); ODbL (atribución y condiciones de compartir una base derivada si se distribuye); cobertura parcial | **Automático con límites estrictos** solo tras verificar; mientras tanto, importación de un extracto |
-| 4 | Páginas Amarillas Perú | Por definir | **No** | Si prohíben extracción, captura asistida | Términos y `robots.txt` | **Asistido, desactivado por defecto** |
-| 5 | CCL, cámara de Arequipa, ASEI, SNI | Por definir | **No** | Preferir importación o captura asistida | Términos de cada directorio; datos de personas | **Asistido / CSV, desactivado por defecto** |
-| 6 | Urbania, Nexo Inmobiliario | Por definir | **No** | Identificar inmobiliarias y proyectos activos | Términos de portales (suelen limitar extracción automatizada) | **Asistido, desactivado por defecto** |
-| 7 | SEACE / OECE (OCDS) | API y descargas oficiales | **No** | OCDS, licencia CC BY 4.0 | Confirmar licencia, nombre y límites de la API; atribución; datos personales dentro de contratos (guardar solo entidad, convocatoria y montos) | **Automático** solo tras verificar |
-| 8a | Get on Board | API pública oficial | **No** | API pública oficial | Términos de la API, límites, uso comercial de los datos | **Automático** solo tras verificar |
-| 8b | Computrabajo, Bumeran, Laborum | Revisar términos | **No** | Si prohíben automatizar, captura asistida | Términos y `robots.txt`; nunca datos de candidatos | **Asistido, desactivado por defecto** |
-| 9 | Indecopi, búsqueda de marcas | Consulta asistida | **No** | Por empresa, sin consultas masivas | Términos; captchas (no se eluden) | **Asistido**: botón que abre la consulta y el vendedor registra el resultado |
-| 10 | Meta Ad Library | Enlace manual | **No** | La API oficial no cubre anuncios comerciales fuera de la UE | Confirmar la limitación; no hacer scraping | **Solo enlace manual** y marcado del resultado por el vendedor. La señal automática es el píxel detectado en la web |
-| 11 | PageSpeed Insights API | API oficial con clave | **No** | Gratuita con clave y cuota diaria | Confirmar que no exige facturación, cuota real, términos | **Automático con clave y caché**; la clave la creas tú. Ya existe un cliente (`pagespeed.ts`) |
-| 12 | webappanalyzer | Firmas de tecnologías | **No** (GitHub devolvió 403) | Fork abierto de Wappalyzer, GPL-3.0 | **Licencia GPL-3.0** de código y firmas; si Radar solo se usa dentro de APROS no se distribuye, pero si se vende o entrega sí aplicaría. Esto es una pregunta legal, no una conclusión mía | Proceso o módulo aislado, firmas descargadas aparte (no copiadas al repositorio), `docs/LICENSES.md`. Alternativa sin riesgo: un detector propio ya parcialmente hecho (26 señales) ampliado con firmas propias |
-| 13 | Revisión propia | Analizador existente | Sí (código propio) | SSL, responsive, formularios, WhatsApp, teléfono, píxel de Meta, GA4, GTM, datos estructurados, robots, sitemap, rastreadores de IA | Falta solo "prueba en ancho móvil" real (hoy se detecta `viewport`) | **Automático** (ya existe, se amplía) |
-| 14 | Página de contacto de cada empresa | Rastreo del propio sitio | Sí en lo técnico (robots y límites ya implementados) | Correos corporativos, teléfonos, WhatsApp, formulario, redes | Ley 29733 (ver 3.5) | **Automático** con las reglas de contacto |
-| — | Google Places | API de pago | **Sí** (2026-11-07) | — | Los términos prohíben guardar nombres y direcciones | **Descartada** (D-60) |
+| # | Fuente | Qué verifiqué | Qué falta | Decisión |
+|---|---|---|---|---|
+| 1 | SUNAT, padrón reducido | Página oficial de descarga con dos archivos y fecha de actualización (07/11/2026); `robots.txt` 404 | Términos de uso (la página no los trae); columnas y tamaño del archivo (no descargado) | **Asistido**: tú descargas, Radar importa |
+| 2 | datosabiertos.gob.pe | `robots.txt` (`Crawl-delay: 10`), licencia por conjunto (ejemplo: ODC Attribution) | **No encontré un conjunto «RUC + CIIU»**; no sé si algún padrón de SUNAT trae CIIU | **Sin construir** hasta resolver 10.1 |
+| 3 | OpenStreetMap, Overpass | ODbL con atribución; política de uso: ~100 consultas y ~10 MB al día en uso regular | API no probada (host sin respuesta); correo de contacto para el User-Agent | **Automático con límites**, desactivado hasta probar en tu Mac |
+| 4 | Páginas Amarillas Perú | `robots.txt`: solo `Disallow: /trafico/*` | Términos de uso | **Asistido**, desactivado |
+| 5 | CCL, Arequipa, ASEI, SNI | Nada (CCL sin respuesta; los demás fuera de lista) | Todo | **Asistido / CSV**, desactivado |
+| 6 | Urbania, Nexo | Urbania: `robots.txt` bloquea rastreadores genéricos y rutas de API; portada respondió 403 al acceso automatizado | Términos | **Asistido**, desactivado |
+| 7 | SEACE / OECE | Nada: `contratacionesabiertas.oece.gob.pe` respondió 403, `www.oece.gob.pe` sin respuesta | Todo, incluida la licencia CC BY 4.0 que menciona el pedido | **No automatizar todavía**; importación de archivo descargado por ti |
+| 8a | Get on Board | Nada (sin respuesta) | Todo | **Asistido** hasta leer su API y términos |
+| 8b | Computrabajo, Bumeran, Laborum | Bumeran y Laborum: `robots.txt` (bloquean rutas concretas, no todo el sitio); Computrabajo sin respuesta | Términos de los tres | **Asistido**, desactivado |
+| 9 | Indecopi | No leído | Todo | **Asistido** por empresa |
+| 10 | Meta Ad Library | No leído | Confirmar la limitación de la API | **Solo enlace manual** |
+| 11 | PageSpeed Insights | Se puede usar con o sin clave; la clave se recomienda para uso automatizado | Cuota diaria exacta | **Automático**, sin clave, con tope propio bajo |
+| 12 | webappanalyzer | `LICENSE` = GNU GPL v3 (confirmado); proyecto continuación de Wappalyzer | Licencia específica de las firmas; tu decisión (10.6) | **Pendiente de elección**: aislar el módulo o ampliar el detector propio |
+| 13 | Revisión propia | Código propio (existe) | «Prueba en ancho móvil» real | **Automático** |
+| 14 | Página de contacto de cada empresa | Código propio (robots y límites ya implementados) | Revisión de Ley 29733 por quien corresponda | **Automático** con reglas de contacto |
+| — | Google Places | Términos leídos | — | **Descartada** (D-60) |
 
 ### 3.5 Reglas de contacto (Ley 29733)
 
@@ -123,6 +119,7 @@ Numeración continua desde `1730000005000`. Todas aditivas (sin borrar ni reescr
 | Migración | Contenido |
 |---|---|
 | `…5000_ui_prefs` | `users.ui_prefs jsonb NOT NULL DEFAULT '{}'` |
+| `…5500_password_auth` | `users.password_hash`, `password_set_at`, `must_change_password`, `failed_attempts`, `locked_until` (ver 7.3) |
 | `…6000_registry` | `CREATE EXTENSION pg_trgm`; `ubigeo (code, department, province, district)`; `ciiu_codes (code, description)`; `ciiu_industry_map (ciiu_prefix, industry_id, priority, active)` editable; `registry_companies (ruc PK, legal_name, normalized_name, estado, condicion, ubigeo, address, ciiu text[], is_legal_entity, source_batch_id, source_version, first_seen_at, last_seen_at, missing_since)`; índices por ubigeo/estado, GIN trigram de `normalized_name`, GIN de `ciiu`; `registry_import_runs (id, source_code, file_sha256, status, rows_read, rows_loaded, rows_skipped, last_line, started_at, finished_at, error)` con checkpoint para reanudar |
 | `…7000_candidates_contacts` | `company_candidates` (empresas de OSM y directorios: nombre, web declarada, teléfono, dirección, coordenadas, `source_code`, `source_url`, `fetched_at`, `connector_version`, estado de revisión); `company_contacts (company_id, kind, value, source_url, fetched_at, collected_by, corrected_by, deleted_at)`; `company_web_validations` |
 | `…8000_connectors` | `source_providers` + `connector_version`, `default_policy`, `last_run_at`, `last_error`; `source_usage` (consultas por fuente y día) |
@@ -162,50 +159,54 @@ Ya existe un proveedor `simulated` basado en reglas que pasa el mismo validador.
 
 ---
 
-## 7. Menú nuevo
+## 7. Menú nuevo y acceso
 
-### 7.1 Estructura (cinco grupos + Configuración)
+### 7.1 Estructura (tres grupos + Configuración)
+
+Sin proceso de ventas (respuesta 4), el menú queda más corto que en la v2.
 
 | Grupo | Pantallas | Estado |
 |---|---|---|
-| **Inicio** | Resumen del día, tareas pendientes, alertas, leads nuevos priorizados | Existe `/` (se amplía) |
-| **Prospectar** | Buscar empresas (nueva); Empresas; Importar CSV; Duplicados; Fuentes e importaciones (nueva); Oportunidades públicas (fase 4); Lista semanal (revisión) | Parcial |
+| **Inicio** | Resumen: actividad reciente, importaciones en curso, alertas (por ejemplo, nuevas convocatorias públicas) y empresas nuevas priorizadas | Existe `/` (se amplía) |
+| **Prospectar** | Buscar empresas (padrón y base); Empresas; Lista semanal; Bandeja de revisión; Importar CSV; Duplicados; Fuentes e importaciones; Oportunidades públicas (V2-4) | Parcial |
 | **Analizar** | Auditorías web (vista nueva sobre los análisis que hoy están dentro de la ficha); Diagnósticos | Parcial |
-| **Vender** | Mis leads (hoy **Bandeja**); Embudo; Actividades y visitas | Solo Bandeja existe |
-| **Resultados** | Panel de indicadores | No existe |
-| **Configuración** (abajo, aparte) | Rubros y CIIU; Scoring (modelos y señales por rubro); Servicios de APROS; Ejecución semanal; IA y presupuesto; Fuentes (activar, términos); Usuarios y roles; No contactar; Clientes activos; Auditoría | Existe casi todo |
+| **Configuración** (abajo, aparte) | Rubros y CIIU; Scoring (modelos y señales); Servicios de APROS; Ejecución semanal; IA y presupuesto; Fuentes (activar, términos); Usuarios y accesos; No contactar; Clientes activos; Auditoría | Existe casi todo |
 
-**Cómo queda cada pantalla actual:**
+Vender y Resultados **no se construyen**. Se retira también cualquier referencia a embudo en pantallas y textos.
 
 | Pantalla actual | Dónde queda |
 |---|---|
 | Inicio | Inicio |
-| Lista semanal | Prospectar |
-| Bandeja | Vender → Mis leads |
+| Lista semanal, Bandeja | Prospectar |
 | Diagnósticos | Analizar |
 | Empresas, Importar CSV, Duplicados | Prospectar |
-| No contactar, Clientes activos | Configuración (y ver 10.5) |
-| Rubros, Señales por rubro | Configuración → Rubros y CIIU / Scoring |
-| Modelos de puntaje | Configuración → Scoring |
+| Rubros, Señales por rubro, Modelos de puntaje | Configuración (Rubros y CIIU, Scoring) |
 | Servicios de APROS, Ejecución semanal, IA y presupuesto | Configuración |
-| Fuentes | Configuración (activar y términos) + Prospectar → Fuentes e importaciones (operación) |
-| Usuarios, Auditoría | Configuración (y ver 10.5) |
+| Fuentes | Configuración (activar y términos) y Prospectar (operación de importaciones) |
+| No contactar, Clientes activos, Usuarios, Auditoría | Configuración |
 
-**Regla anti-enlaces muertos:** una pantalla que aún no existe (Embudo, Actividades, Panel) **no aparece** en el menú hasta construirse. Hoy Vender y Resultados quedarían vacíos; eso se resuelve con la decisión 10.4.
+Una pantalla que no existe no aparece en el menú.
 
-### 7.2 Comportamiento
+### 7.2 Comportamiento (sin cambios respecto a la v2)
 
-- **Menú lateral colapsable:** expandido con ícono y texto; colapsado solo íconos. Botón visible y atajo de teclado `Ctrl/⌘ + B`, desactivado mientras el foco esté en un campo editable.
-- **Preferencia por usuario** en `users.ui_prefs`, leída en el servidor para evitar parpadeo; se guarda con una acción de servidor (con la protección CSRF existente).
-- **Colapsado:** tooltip con el nombre y panel flotante con subopciones al pasar o hacer clic; se cierra con Esc o al salir.
-- **Expandido:** acordeón, un solo grupo abierto a la vez. Grupo y página activos resaltados en ambos modos (`aria-current="page"` y borde, no solo color).
-- **Roles:** cada rol ve solo lo que puede usar; un grupo sin entradas permitidas no se muestra. Configuración solo para administradores (con la salvedad 10.5).
-- **Móvil:** botón de hamburguesa que abre un panel (diálogo con foco atrapado y Esc).
-- **Íconos:** un solo set de SVG en línea con trazo y tamaño uniformes (propongo `lucide-react`, licencia ISC; si prefieres cero dependencias, SVG propios). Cada ícono tiene etiqueta accesible o tooltip.
-- **Accesibilidad:** teclado completo, `aria-expanded`, foco visible, lectores de pantalla; se verifica con axe y prueba manual a 1280 y 390 px.
-- **Búsqueda global en el encabezado** (atajo `/`): RUC (11 dígitos, exacto), razón social (trigramas) o dominio. Mínimo 3 caracteres, máximo 8 resultados, limitada por tasa, respeta permisos y marca las empresas en no contactar. Un vendedor solo encuentra lo que ya puede ver.
+Colapsable con botón y atajo `Ctrl/⌘ + B` (no activo al escribir en un campo); preferencia por usuario en `users.ui_prefs`, leída en el servidor; tooltip y panel flotante con subopciones al colapsar; acordeón de un solo grupo abierto; grupo y página activos resaltados con `aria-current` y borde (no solo color); móvil con hamburguesa y panel con foco atrapado; un solo set de íconos SVG consistente (propongo `lucide-react`, licencia ISC); teclado completo, `aria-expanded`, foco visible, verificación con axe a 1280 y 390 px. Cada rol ve solo lo que puede usar; **Configuración** se muestra a quien tenga permisos de administración.
 
----
+**Búsqueda global** en el encabezado (atajo `/`): RUC (11 dígitos, exacto), razón social (trigramas) o dominio; mínimo 3 caracteres, máximo 8 resultados, limitada por tasa; marca las empresas en no contactar.
+
+### 7.3 Acceso con usuario y contraseña (reemplaza D-04)
+
+Hoy el único acceso real es Google (más un acceso de desarrollo que solo existe en tu Mac). Se agrega acceso con clave propia:
+
+- **Contraseñas:** se guardan con `scrypt` (incluido en Node, sin dependencias nuevas), sal única por usuario y parámetros guardados junto al hash; comparación en tiempo constante. Nunca se registran ni se muestran.
+- **Política:** mínimo 12 caracteres, no igual al correo ni en una lista corta de claves comunes; sin rotación forzada.
+- **Altas:** el administrador crea el usuario con una clave temporal que se muestra una sola vez y que obliga a cambiarla al primer ingreso; también puede restablecerla o desactivar la cuenta. No existen claves por defecto. El primer administrador se crea con un comando local (`npm run user:create`) que pide la clave por consola.
+- **Defensa contra adivinación:** límite por IP (el limitador existente), bloqueo temporal de la cuenta tras 5 intentos fallidos (15 minutos), mensajes de error iguales para usuario inexistente y clave incorrecta, y trabajo de hash simulado para usuarios inexistentes (evita distinguirlos por tiempo).
+- **Sesiones:** las actuales (token en base de datos con hash, cookie `__Host-` en producción). Al cambiar la clave se cierran las demás sesiones del usuario.
+- **Auditoría:** cada ingreso, fallo, cambio y restablecimiento de clave queda en el registro con hash encadenado (sin la clave).
+- **Google:** el código existente queda disponible pero **desactivado por defecto** y opcional.
+- **Lo que no cubre:** sin segundo factor. Si Radar se publica en internet, recomiendo agregar TOTP después; con la herramienta solo en red interna el riesgo es menor. Y exige HTTPS en el servidor.
+- **Migración:** `users` gana `password_hash`, `password_set_at`, `must_change_password`, `failed_attempts`, `locked_until`.
+- **Pruebas:** hash y verificación, política, bloqueo, sin enumeración de usuarios, cierre de sesiones al cambiar clave, permisos del administrador, CSRF.
 
 ## 8. Riesgos
 
@@ -218,11 +219,13 @@ Ya existe un proveedor `simulated` basado en reglas que pasa el mismo validador.
 | R5 | Términos de fuentes que prohíban la automatización o la reutilización | Regla de la sección 3: sin verificar, asistido; desactivado por defecto |
 | R6 | Bloqueos, captchas, límites | Detenerse y registrar; nunca eludir; límites por dominio y caché |
 | R7 | Licencias (ODbL de OSM, CC BY de SEACE, GPL-3.0 de webappanalyzer) | Atribución visible, `docs/LICENSES.md`, aislamiento del módulo GPL, consulta legal si habrá distribución |
-| R8 | Sobrecontacto por tener una base enorme | Promoción explícita con conteo y tope; vendedores solo ven lo aprobado; lista de no contactar en todas las pantallas |
+| R8 | Sobrecontacto por tener una base enorme | Promoción explícita con conteo y tope; revisión humana de la lista semanal; lista de no contactar en todas las pantallas |
 | R9 | Scoring con señales nuevas sin datos reales para calibrar | Modelo nuevo versionado, marcado "sin calibrar"; calibración en la fase 7 original con casos reales |
 | R10 | Cuota gratuita de PageSpeed insuficiente | Caché, tope diario propio, reintento con espera; la clave la creas tú |
 | R11 | Costos fuera de la Mac (servidor, disco, respaldos) | Se miden con datos reales y se reportan antes de desplegar |
 | R12 | Mi verificación legal no es asesoría jurídica | Cada `docs/sources/*.md` deja una sección "Pendiente de revisión legal" |
+| R13 | El acceso con clave propia amplía la superficie de ataque (fuerza bruta, relleno de credenciales) | Bloqueo por cuenta e IP, política de claves, auditoría, HTTPS obligatorio; TOTP recomendado antes de publicar en internet |
+| R14 | Varias fuentes oficiales bloquean o no responden al acceso automatizado | No se elude; importación de archivo descargado por ti |
 
 ---
 
@@ -230,39 +233,35 @@ Ya existe un proveedor `simulated` basado en reglas que pasa el mismo validador.
 
 | Antes | Ahora |
 |---|---|
-| D-09: sin proveedor de empresas al inicio, solo CSV y alta manual | Se agregan fuentes oficiales y abiertas, cada una tras verificar sus términos |
-| D-19: solo datos ficticios hasta que apruebe tu jefe | Pendiente de tu decisión 10.2 para datos públicos oficiales |
-| Fase 6 original (trabajo comercial) y 7 (resultados) | Se renombran las fases de v2 como **V2-1 a V2-6** para no chocar; las pantallas de Vender y Resultados se ubican según 10.4 |
-| Google Places como fuente recomendada | Descartada (D-60) |
-| Diagnóstico con IA como camino principal | Diagnóstico con reglas por defecto; IA opcional |
+| D-04: acceso solo con Google Workspace, sin contraseñas propias | Acceso con clave propia (7.3); Google opcional y desactivado |
+| D-09: sin proveedor de empresas, solo CSV y alta manual | Fuentes oficiales y abiertas, cada una tras verificar sus términos |
+| D-19: solo datos ficticios hasta que apruebe tu jefe | Datos reales oficiales permitidos en tu Mac (respuesta 2) |
+| D-50: el vendedor solo ve lo aprobado | Pendiente de 10.5 |
+| Fases 6 (trabajo comercial) y 7 (resultados, integración, calibración) | **Canceladas** (respuesta 4). La calibración del scoring queda para cuando haya datos reales |
+| Google Places como fuente | Descartada (D-60) |
+| Diagnóstico con IA por defecto | Diagnóstico con reglas por defecto; IA opcional |
 
----
+## 10. Lo que sigue pendiente
 
-## 10. Decisiones que necesito
-
-1. **Verificación de términos.** Opción A: abres cada página oficial y me pegas el texto de términos y de `robots.txt`. Opción B: me permites leer estos dominios en el entorno (te aparecerá una aprobación): `sunat.gob.pe`, `datosabiertos.gob.pe`, `oece.gob.pe` (y su portal de contrataciones abiertas), `overpass-api.de`, `wiki.openstreetmap.org`, `operations.osmfoundation.org`, `openstreetmap.org`, `getonboard.com`, `paginasamarillas.com.pe`, `ccl.org.pe`, `urbania.pe`, `computrabajo.com.pe`, `bumeran.com.pe`, `laborum.pe`, `developers.google.com`, `github.com` y `raw.githubusercontent.com` (para la licencia de webappanalyzer). Aun con B, las descargas grandes ocurren en tu Mac; yo solo leería políticas.
-2. **Datos reales oficiales.** ¿Se permite cargar en tu Mac el padrón de SUNAT y las convocatorias de SEACE (datos públicos oficiales) mientras tu jefe no apruebe el proyecto? Recomiendo sí, solo en tu equipo y sin compartir; hasta que respondas, todo se prueba con archivos sintéticos.
-3. **Ramas.** Recomiendo mergear #1 a #6 (en orden) y partir `feat/v2-*` de `main`. Si prefieres no esperar, apilo sobre `feat/fase-5-diagnostico`.
-4. **Vender y Resultados.** Recomiendo construir Embudo, Actividades y Panel **después** de V2-4, en una fase propia, y mientras tanto mostrar solo Mis leads. Alternativa: incluirlos en v2 (más largo).
-5. **Permisos.** Hoy `sales_lead` gestiona No contactar y lee Auditoría. Recomiendo que mantenga esas dos entradas visibles fuera de Configuración (en Prospectar y Resultados) y que Configuración siga siendo solo de administradores.
-6. **Permisos de búsqueda en el padrón.** Propuesta: ver el padrón (`registry.read`) para administrador, líder de ventas y consultor; **promover** a empresas de trabajo (`registry.promote`) para administrador y líder de ventas; el vendedor no ve el padrón.
-7. **Clave de PageSpeed** y, si aplica, correo de contacto para el User-Agent de Overpass (lo piden sus políticas): los pones tú en `.env`, nunca en el repositorio.
-
----
+1. **CIIU.** En datosabiertos no encontré un conjunto «RUC con CIIU». ¿Tienes el enlace? Si no existe, el rubro se asigna con reglas por palabras de la razón social y la web, con confirmación humana, y la tabla CIIU→rubro queda para cuando haya una fuente.
+2. **Columnas del padrón reducido.** El archivo está en `www2.sunat.gob.pe`, que no tengo habilitado. Puedes (a) permitirme ese host para leer solo los primeros kilobytes y confirmar las columnas, o (b) correr en tu Mac un comando que te daré para ver la cabecera y pegarme el resultado.
+3. **Fuentes sin respuesta** (Computrabajo, Get on Board, CCL, SEACE/OECE, Overpass, dominio de términos de Páginas Amarillas, `laborum.pe` sin `www`): varias están habilitadas pero no respondieron desde el entorno, y SEACE respondió 403 (no se elude). O pegas tú los textos de términos desde el navegador, o las dejamos en modo asistido.
+4. **Correo de contacto** para el User-Agent de Overpass (en `.env` de tu Mac). No hace falta hasta activar OSM.
+5. **Permisos.** Propuesta: todos los roles con acceso ven y promueven empresas; `read_only` conserva solo lectura. Y la regla D-50 («el vendedor solo ve lo aprobado de la lista semanal»): ¿se mantiene o se retira, ya que ahora todos ven el padrón?
+6. **webappanalyzer.** ¿Aislamos el módulo GPL-3.0 (con `docs/LICENSES.md`) o ampliamos el detector propio? Recomiendo el detector propio: sin duda de licencia y sin dependencia.
+7. **Aprobación de esta v2.1** (incluye el acceso con clave y la cancelación de Vender/Resultados) para empezar **V2-1**.
 
 ## 11. Orden de implementación
 
-Una rama `feat/v2-<tema>` y un PR en borrador por fase; me detengo al final de cada una para tu revisión con el mismo informe de siempre (qué funciona, cómo probarlo, pruebas reales, decisiones, riesgos, qué necesito).
+Una rama `feat/v2-<tema>` desde `main` y un PR en borrador por fase. Al final de cada fase me detengo con el informe de siempre.
 
-| Fase | Rama | Contenido | Depende de | Se puede probar sin datos reales |
+| Fase | Rama | Contenido | Depende de | Probable sin datos reales |
 |---|---|---|---|---|
-| **V2-1** | `feat/v2-menu` | Menú, colapsado, móvil, preferencia por usuario, búsqueda global sobre `companies` | — | Sí |
-| **V2-2** | `feat/v2-base-oficial` | Dedupe en SQL, padrón, CIIU, ubigeo, tabla CIIU→rubro editable, filtros, importación reanudable, Buscar empresas con promoción, Fuentes e importaciones | V2-1, decisión 2 para datos reales | Sí, con archivo sintético |
-| **V2-3** | `feat/v2-enriquecimiento` | OSM, página de contacto, auditoría web ampliada, PageSpeed, módulo de firmas de tecnologías, diagnóstico `rules` | V2-2; términos de OSM; clave de PageSpeed | Parcial (respuestas simuladas) |
-| **V2-4** | `feat/v2-senales` | SEACE/OECE con Oportunidades públicas y alertas, Get on Board, Indecopi asistido, enlace de Meta | Términos de cada una | Parcial (fixtures) |
-| **V2-5** | `feat/v2-directorios` | Solo directorios y portales cuya revisión legal apruebes: automáticos o asistidos | Tu aprobación por fuente | Parcial |
+| **V2-1** | `feat/v2-menu-acceso` | Menú nuevo, colapsado, móvil, preferencia por usuario, búsqueda global sobre `companies`, **acceso con usuario y contraseña** | Aprobación | Sí |
+| **V2-2** | `feat/v2-base-oficial` | Dedupe en SQL, padrón, importación reanudable y filtros, rubro por reglas (o CIIU si 10.1 lo resuelve), Buscar empresas con promoción, Fuentes e importaciones | V2-1, 10.2 | Sí, con archivo sintético; el archivo real en tu Mac |
+| **V2-3** | `feat/v2-enriquecimiento` | OSM, página de contacto, auditoría web ampliada, PageSpeed, detector de tecnologías (según 10.6), diagnóstico `rules` | V2-2; 10.4 | Parcial |
+| **V2-4** | `feat/v2-senales` | Oportunidades públicas (SEACE/OECE, según 10.3), Get on Board, Indecopi asistido, enlace de Meta | Términos de cada una | Parcial |
+| **V2-5** | `feat/v2-directorios` | Solo directorios y portales cuya revisión apruebes: asistidos o automáticos | Tu aprobación por fuente | Parcial |
 | **V2-6** | `feat/v2-scoring` | Nuevas señales, vigencia, pesos por rubro, nueva versión de modelos | V2-3 y V2-4 | Sí |
 
-**Criterios de aceptación** (los de tu documento): se verifican uno por uno en el informe de cada fase; los que dependen de datos reales (padrón completo, convocatorias reales de SEACE) quedan marcados como "pendientes de verificar en tu Mac" hasta que corran allí.
-
-**Qué se hace antes de empezar V2-1:** nada de código; solo tus respuestas a la sección 10.
+Los criterios de aceptación de tu documento se verifican en el informe de cada fase; los que dependen de datos reales (padrón completo, convocatorias reales de SEACE) quedan marcados como pendientes de verificar en tu Mac.
