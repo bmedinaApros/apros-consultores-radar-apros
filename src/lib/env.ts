@@ -17,6 +17,10 @@ const schema = z.object({
   CRAWLER_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60000).default(10000),
   ANALYSIS_CACHE_DAYS: z.coerce.number().int().min(0).max(90).default(7),
   PAGESPEED_API_KEY: z.string().default(""),
+  // IA (diagnósticos). Solo la API de Anthropic con clave propia; no se usan credenciales de suscripciones.
+  AI_PROVIDER: z.enum(["disabled", "anthropic", "simulated"]).default("disabled"),
+  ANTHROPIC_API_KEY: z.string().default(""),
+  ANTHROPIC_MODEL: z.string().min(1).default("claude-opus-5-5"),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -28,6 +32,9 @@ export function isDevLoginAllowed(env: Pick<Env, "NODE_ENV" | "DEV_LOGIN_ENABLED
 
 export function parseEnv(source: Record<string, string | undefined>): Env {
   const env = schema.parse(source);
+  if (env.NODE_ENV === "production" && env.AI_PROVIDER === "simulated") {
+    throw new Error("AI_PROVIDER=simulated no está permitido en producción");
+  }
   if (env.NODE_ENV === "production" && env.DEV_LOGIN_ENABLED === "true") {
     throw new Error("DEV_LOGIN_ENABLED=true no está permitido en producción");
   }
