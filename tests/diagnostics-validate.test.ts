@@ -30,7 +30,6 @@ const diag = (over: Partial<DiagnosticContent> = {}): DiagnosticContent => ({
   headline: "Oportunidades de evolución digital", summary: "Identificamos oportunidades para ordenar la presencia digital de la empresa.",
   opportunities: [base()], nextStep: "Proponemos una reunión corta para validar estas hipótesis.", caveats: ["Basado solo en información pública."], ...over,
 });
-const codes = (d: DiagnosticContent, c = ctx()) => validateDiagnostic(d, c).flags.map((f) => `${f.code}:${f.field}`);
 const blocking = (d: DiagnosticContent, c = ctx()) => validateDiagnostic(d, c).flags.filter((f) => f.blocking).map((f) => f.code);
 
 describe("validación del diagnóstico: caso válido y forma", () => {

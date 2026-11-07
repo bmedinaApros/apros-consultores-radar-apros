@@ -61,3 +61,5 @@ export function modelJsonSchema(): { [key: string]: unknown } {
   };
   return strip(raw) as { [key: string]: unknown };
 }
+
+export const STATUS_LABEL = { draft: "Borrador", in_review: "En revisión", approved: "Aprobado", rejected: "Rechazado" } as const;

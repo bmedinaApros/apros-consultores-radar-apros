@@ -18,6 +18,7 @@ RUN addgroup --system --gid 1001 radar && adduser --system --uid 1001 --ingroup 
 COPY --from=build --chown=radar:radar /app/.next/standalone ./
 COPY --from=build --chown=radar:radar /app/.next/static ./.next/static
 COPY --from=build --chown=radar:radar /app/public ./public
+COPY --from=build --chown=radar:radar /app/assets ./assets
 # Migraciones: se ejecutan con `node scripts/migrate.mjs up` usando MIGRATE_DATABASE_URL.
 COPY --from=build --chown=radar:radar /app/migrations ./migrations
 COPY --from=build --chown=radar:radar /app/scripts/migrate.mjs ./scripts/migrate.mjs

@@ -93,7 +93,14 @@ Las pruebas de SSRF usan servidores locales con direcciones públicas simuladas 
 ## Pendiente (fases siguientes)
 
 - Aplicar la misma protección SSRF a los proveedores de fuentes externos cuando existan.
-- Inyección de prompts y validación de salida del modelo (fase 5).
 - Rate limiting en importación, descubrimiento, análisis y generación con IA.
-- Flujo de aprobación forzado en servidor para diagnósticos (fase 5).
 - Auditoría de accesos de lectura, exportaciones y cambios de puntaje.
+
+## IA y diagnósticos (fase 5)
+
+- **Inyección de prompts:** el texto del sitio entra solo dentro de un bloque `<datos_no_confiables>` limpiado y acotado; el modelo no tiene herramientas. La salida se valida (esquema, evidencia, números, lenguaje, enlaces, datos personales, eco de instrucciones). Pruebas con páginas hostiles en `tests/diagnostics-validate.test.ts`.
+- **Aprobación y exportación forzadas en el servidor** (`loadExportable`), con límite de 60 descargas por hora y usuario y auditoría de cada descarga.
+- **Presupuesto:** topes diario y mensual, comprobación del peor caso antes de llamar, registro inmutable de cada llamada.
+- **Secretos:** `ANTHROPIC_API_KEY` solo por variable de entorno; nunca se registra ni se muestra. Los errores del proveedor se sanean.
+- **Datos enviados:** ver `docs/AI-DATA.md`.
+- **Pendiente:** limitador de descargas en memoria (una sola instancia); prueba real con clave de Anthropic.

@@ -54,3 +54,10 @@
 | D-50 | Un vendedor solo ve elementos aprobados que son suyos o no tienen responsable. | El consultor revisa antes de que un vendedor use la empresa. | Sí |
 | D-51 | Los servicios sugeridos se muestran siempre como hipótesis a validar, con su motivo. | D-23 (la IA y las reglas no confirman hechos). | Sí |
 | D-52 | En esta fase no se usa IA: el puntaje, los motivos y las sugerencias son determinísticos. La IA entra en la fase 5 (diagnóstico). | Menos costo y menos riesgo; cumple «la IA no decide si una señal existe». | Sí |
+| D-53 | Un diagnóstico por empresa con versiones inmutables; editar o regenerar crea versión y retira la aprobación. | Trazabilidad de qué se aprobó y qué se entregó. | Sí |
+| D-54 | Proveedor de IA detrás de una interfaz: Anthropic (salida estructurada JSON, sin herramientas) y uno simulado solo para desarrollo, prohibido en producción. | Probar el flujo sin gastar ni enviar datos. | Sí |
+| D-55 | La salida del modelo es no confiable: esquema + validador de afirmaciones con marcas bloqueantes; sin evidencia citada no hay afirmación. | D-23 y defensa contra inyección de prompts. | Sí |
+| D-56 | Tope diario/mensual en USD con comprobación del peor caso antes de llamar; modelo desconocido se cobra al precio más alto. | Nunca subestimar el gasto. | Sí |
+| D-57 | PDF con pdfkit (sin navegador) en una sola página; PPTX con pptxgenjs. Reemplaza D-08 para el PDF. | Menos dependencias en el servidor; control de desbordes. | Sí |
+| D-58 | Sin `fallbacks` de rechazo del lado del servidor: un rechazo del modelo se muestra a una persona. | Evitar texto de otro modelo sin que nadie lo note. | Sí |
+| D-59 | La exportación solo existe en `loadExportable` (servidor) y se audita; el botón no es un control. | Flujo de aprobación forzado. | No |

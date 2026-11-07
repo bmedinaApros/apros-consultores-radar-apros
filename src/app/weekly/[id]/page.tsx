@@ -10,6 +10,7 @@ import { pool } from "@/lib/db";
 import { can } from "@/lib/rbac";
 import { MANUAL_CRITERIA } from "@/lib/scoring/model";
 import { getList, listItems, listWeeklyLists, reviewCounts, reviewItem } from "@/lib/weekly/service";
+import { generateBatchAction } from "@/app/diagnostics/actions";
 import { listIndustrySignals, signalName } from "@/lib/analyzer/service";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +68,13 @@ export default async function WeeklyPage({ params, searchParams }: { params: Pro
         </div>
       )}
       <p className="muted">Los servicios sugeridos son <strong>hipótesis de encaje a validar</strong>, no hechos. Las señales «no detectadas» solo significan que no aparecieron en el HTML del sitio.</p>
+      {can(user.role, "diagnostics.write") && (counts.approved ?? 0) > 0 && (
+        <form action={generateBatchAction} className="row">
+          <input type="hidden" name="listId" value={id} />
+          <button className="btn btn-secondary btn-small" type="submit">Generar diagnósticos de las aprobadas (máx. 30)</button>
+          <span className="muted">Solo empresas aprobadas que aún no tienen diagnóstico.</span>
+        </form>
+      )}
       <nav className="row" aria-label="Filtrar por revisión">
         <Link className="btn btn-secondary btn-small" href={`/weekly/${id}`}>Todas</Link>
         {(Object.keys(REVIEW) as (keyof typeof REVIEW)[]).map((k) => <Link key={k} className="btn btn-secondary btn-small" href={`/weekly/${id}?review=${k}`}>{REVIEW[k]}</Link>)}

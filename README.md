@@ -71,6 +71,13 @@ Con `npm run dev` y `npm run worker` corriendo, entra como administrador:
 
 En la ficha de cada empresa están el desglose del puntaje, los criterios manuales y el ajuste con motivo. **Los modelos y servicios cargados son un ejemplo**: edítalos en **Modelos de puntaje** y **Servicios de APROS**. Con los dominios ficticios (`*.example.com`) el análisis sale «no se pudo verificar» y no hay lista: usa sitios reales que tú elijas para ver resultados.
 
+## Probar los diagnósticos con IA (fase 5)
+
+1. En `.env`: `AI_PROVIDER=simulated` (texto de demostración, sin gasto ni salida de datos). Reinicia `npm run dev` y `npm run worker`.
+2. Entra como administrador, abre una empresa con análisis completado y pulsa **Generar diagnóstico con IA** (o, en una lista semanal con empresas aprobadas, **Generar diagnósticos de las aprobadas**).
+3. En **Diagnósticos** revisa el texto con su evidencia, envía a revisión y, con un usuario consultor, aprueba; entonces aparecen **Descargar PDF** y **Descargar PPTX**.
+4. Para IA real: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY=…` y, si quieres, `ANTHROPIC_MODEL`. Ajusta topes en **IA y presupuesto**. Primero lee `docs/AI-DATA.md`.
+
 ## Comandos
 
 | Comando | Qué hace |

@@ -425,3 +425,17 @@ export async function recordExport(actor: ActorInfo, x: { diagnosticId: string; 
     await audit({ actorId: actor.id, actorEmail: actor.email, action: "diagnostic.exported", entityType: "diagnostic", entityId: x.diagnosticId, metadata: { format: x.format, bytes: x.bytes.length } }, c);
   });
 }
+
+// ---------- Lote para el piloto ----------
+
+export const BATCH_MAX = 30;
+
+/** Empresas aprobadas de una lista semanal que aún no tienen diagnóstico (máximo BATCH_MAX por lote). */
+export async function companiesNeedingDiagnostic(listId: string, limit = BATCH_MAX): Promise<{ companyId: string; name: string }[]> {
+  const r = await pool().query<{ company_id: string; company_name: string }>(
+    `SELECT i.company_id, i.company_name FROM weekly_list_items i
+      WHERE i.list_id = $1 AND i.review_status = 'approved' AND i.company_id IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM diagnostics d WHERE d.company_id = i.company_id)
+      ORDER BY i.rank LIMIT $2`, [listId, Math.min(Math.max(limit, 1), BATCH_MAX)]);
+  return r.rows.map((x) => ({ companyId: x.company_id, name: x.company_name }));
+}

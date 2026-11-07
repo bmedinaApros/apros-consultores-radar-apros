@@ -73,7 +73,7 @@ describe("generación", () => {
 
   it("salida inválida o rechazo del modelo: se registra el intento y no se guarda nada", async () => {
     const { lead, id } = await setup();
-    const bad: AiProvider = { id: "anthropic", model: "claude-opus-5-5", generate: async () => ({ text: "esto no es json", model: "claude-opus-5-5", inputTokens: 1000, outputTokens: 10, cacheReadTokens: 0 }) };
+    const bad: AiProvider = { id: "anthropic", model: "claude-opus-5-5", generate: async () => ({ text: "esto no es json", model: "claude-opus-5-5", inputTokens: 1000, outputTokens: 10, cacheReadTokens: 0, stopReason: "end_turn" }) };
     await expect(generateDiagnostic(lead, id, { provider: bad })).rejects.toThrow(/JSON/);
     const refuse: AiProvider = { id: "anthropic", model: "claude-opus-5-5", generate: async () => { throw new AiRefusalError("x"); } };
     await expect(generateDiagnostic(lead, id, { provider: refuse })).rejects.toThrow(/declinó/);
@@ -91,7 +91,7 @@ describe("generación", () => {
         const o = JSON.parse((await sim.generate(req)).text);
         o.opportunities[0].evidence = [];
         o.opportunities[0].observation = "Su sitio está mal hecho y pierde 40% de clientes";
-        return { text: JSON.stringify(o), model: "claude-opus-5-5", inputTokens: 100, outputTokens: 100, cacheReadTokens: 0 };
+        return { text: JSON.stringify(o), model: "claude-opus-5-5", inputTokens: 100, outputTokens: 100, cacheReadTokens: 0, stopReason: "end_turn" };
       },
     };
     const r = await generateDiagnostic(lead, id, { provider: hostile });

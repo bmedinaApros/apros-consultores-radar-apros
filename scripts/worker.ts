@@ -1,6 +1,6 @@
 /* Proceso de trabajos en segundo plano. Uso: npm run worker */
 import { ANALYZE_QUEUE, getBoss } from "../src/lib/jobs/queue";
-import { registerAnalysisWorker, registerWeeklyWorker } from "../src/lib/jobs/analysis-worker";
+import { registerAnalysisWorker, registerDiagnosticWorker, registerWeeklyWorker } from "../src/lib/jobs/analysis-worker";
 import { syncWeeklySchedule } from "../src/lib/jobs/queue";
 import { getWeeklySettings } from "../src/lib/weekly/settings";
 import { defaultDeps } from "../src/lib/analyzer/run";
@@ -12,6 +12,7 @@ const boss = await getBoss({ supervise: true });
 const deps = { ...defaultDeps(), ...(env().PAGESPEED_API_KEY ? { pageSpeed: googlePageSpeed() } : {}) };
 await registerAnalysisWorker(boss, deps);
 await registerWeeklyWorker(boss, deps);
+await registerDiagnosticWorker(boss);
 const settings = await getWeeklySettings();
 await syncWeeklySchedule(settings.scheduleEnabled, settings.cron);
 log("info", "ejecución semanal programada", { enabled: settings.scheduleEnabled, cron: settings.cron, tz: "America/Lima" });

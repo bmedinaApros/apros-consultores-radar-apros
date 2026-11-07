@@ -2,7 +2,7 @@ import PDFDocument from "pdfkit";
 import { ASSETS, BRAND, evidenceLine, fmtDate, kindLabel, LEGEND, modelLabel, priorityLabel, safeText } from "./export-common";
 import type { Exportable } from "./service";
 
-const W = 595.28, H = 841.89, M = 40, CW = W - 2 * M, FOOT = 790;
+const W = 595.28, M = 40, CW = W - 2 * M, FOOT = 790;
 const LABEL_W = 78;
 
 export class PdfOverflowError extends Error {
