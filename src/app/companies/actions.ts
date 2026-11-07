@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { guarded, toActor } from "@/lib/actor";
 import { requireUser } from "@/lib/current-user";
-import { createCompany, PossibleDuplicateError, updateCompany, classifyCompany } from "@/lib/companies/service";
+import { createCompany, PossibleDuplicateError, updateCompany, classifyCompany, getCompany, CompanyError } from "@/lib/companies/service";
+import { ForbiddenError } from "@/lib/rbac";
+import { canAnalyze } from "@/lib/analyzer/service";
+import { createRateLimiter } from "@/lib/rate-limit";
+import { enqueueAnalysis } from "@/lib/jobs/queue";
 
 const str = z.string().max(300).optional().default("");
 const createSchema = z.object({
@@ -55,5 +59,23 @@ export async function classifyAction(formData: FormData): Promise<void> {
   return guarded(d.back ?? `/companies/${d.id}`, async () => {
     await classifyCompany(toActor(user), d.id, d.industryId);
     return "Rubro confirmado.";
+  });
+}
+
+const analysisLimiter = createRateLimiter(30, 60 * 60 * 1000);
+
+/** Encola un análisis web. El trabajo lo ejecuta el worker; aquí solo se valida permiso y se limita la tasa. */
+export async function analyzeAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const d = z.object({ id: z.string().uuid(), force: z.enum(["1", "0"]).default("0") }).parse(Object.fromEntries(formData));
+  return guarded(`/companies/${d.id}`, async () => {
+    const company = await getCompany(d.id);
+    if (!company) throw new CompanyError("Empresa no encontrada");
+    if (!canAnalyze({ id: user.userId, role: user.role }, company)) throw new ForbiddenError("No puedes analizar esta empresa");
+    if (!company.domain) throw new CompanyError("La empresa no tiene sitio web conocido");
+    if (company.blocked) throw new CompanyError("La empresa está en la lista de no contactar");
+    if (!analysisLimiter.check(user.userId).allowed) throw new CompanyError("Demasiados análisis solicitados; intenta más tarde");
+    const id = await enqueueAnalysis({ companyId: d.id, triggeredBy: user.userId, force: d.force === "1" });
+    return id ? "Análisis encolado. Se ejecuta en segundo plano (el worker debe estar corriendo)." : "Ya hay un análisis pendiente para esta empresa.";
   });
 }

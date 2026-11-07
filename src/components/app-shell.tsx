@@ -18,6 +18,7 @@ export function AppShell({ user, current, children }: { user: SessionUser; curre
     { href: "/admin/dnc", label: "No contactar", show: can(user.role, "dnc.manage") },
     { href: "/admin/clients", label: "Clientes activos", show: can(user.role, "catalog.manage") },
     { href: "/admin/industries", label: "Rubros", show: can(user.role, "catalog.manage") },
+    { href: "/admin/signals", label: "Señales por rubro", show: can(user.role, "catalog.manage") },
     { href: "/admin/sources", label: "Fuentes", show: can(user.role, "sources.manage") },
     { href: "/admin/users", label: "Usuarios", show: can(user.role, "users.manage") },
     { href: "/admin/audit", label: "Auditoría", show: can(user.role, "audit.read") },

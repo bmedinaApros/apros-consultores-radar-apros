@@ -2,7 +2,7 @@
 
 Aplicación web interna de APROS Consultores Digitales. Su propósito: **entregar cada semana una lista priorizada de empresas peruanas a las que APROS podría ofrecer sus servicios**, con la evidencia de cada hallazgo y la revisión de un consultor antes de que un vendedor la use.
 
-Estado: **fase 2 de 8 (Empresas y descubrimiento)**. Incluye acceso con Google Workspace, roles, auditoría, importación CSV con deduplicación, lista de no contactar, clientes activos, rubros editables y el marco de fuentes. El análisis web y la lista semanal llegan en las fases 3 y 4. Ver `docs/PLAN.md`.
+Estado: **fase 3 de 8 (Analizador web)**. Incluye acceso con Google Workspace, roles, auditoría, importación CSV con deduplicación, lista de no contactar, clientes activos, rubros editables y el marco de fuentes. Analiza el sitio público de cada empresa y guarda señales con evidencia (ver `docs/ANALYZER.md`). El puntaje y la lista semanal llegan en la fase 4. Ver `docs/PLAN.md`.
 
 ## Requisitos (Mac)
 
@@ -49,6 +49,18 @@ Con la aplicación corriendo y el acceso de desarrollo como administrador, ve a 
 
 En **Fuentes** puedes aprobar los términos de la fuente simulada, activarla y ejecutar un descubrimiento de prueba.
 
+## Probar el analizador
+
+El análisis se ejecuta en segundo plano. En una terminal aparte, con la aplicación y la base de datos corriendo:
+
+```bash
+npm run worker
+```
+
+Luego abre una empresa con sitio web, pulsa **Analizar ahora** y recarga la ficha. Con las empresas ficticias (dominios `*.example.com`, que no existen) todas las señales saldrán **«No se pudo verificar»**: es el comportamiento correcto. Para ver señales reales, edita una empresa y pon el sitio de una empresa que tú elijas; el analizador solo lee páginas públicas, respeta `robots.txt` y se identifica como `RadarAPROS`.
+
+En **Señales por rubro** (administrador) puedes agregar palabras clave propias de un rubro sin tocar código.
+
 ## Comandos
 
 | Comando | Qué hace |
@@ -60,6 +72,7 @@ En **Fuentes** puedes aprobar los términos de la fuente simulada, activarla y e
 | `npm run build` | Compilación de producción |
 | `npm run db:migrate` | Aplica migraciones pendientes |
 | `npm run db:seed` | Crea usuarios ficticios de desarrollo |
+| `npm run worker` | Procesa los análisis en segundo plano (cola pg-boss) |
 | `npm run audit:deps` | Falla ante vulnerabilidades altas o críticas |
 
 Las pruebas usan la base `radar_test`. Con `docker compose up -d db` ya existe, con los roles `radar_owner` y `radar_app` de desarrollo. La base de pruebas se recrea en cada ejecución.
