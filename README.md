@@ -1,5 +1,81 @@
 # Radar APROS
 
-Aplicación web interna de APROS Consultores Digitales para detectar, priorizar y diagnosticar oportunidades comerciales.
+Aplicación web interna de APROS Consultores Digitales. Su propósito: **entregar cada semana una lista priorizada de empresas peruanas a las que APROS podría ofrecer sus servicios**, con la evidencia de cada hallazgo y la revisión de un consultor antes de que un vendedor la use.
 
-Estado: en planificación. Ver `docs/PLAN.md` cuando se apruebe.
+Estado: **fase 1 de 8 (Fundaciones)**. Hoy incluye acceso con Google Workspace, roles, auditoría, sistema de diseño y CI. El descubrimiento, el análisis y la lista semanal llegan en las fases 2 a 4. Ver `docs/PLAN.md`.
+
+## Requisitos (Mac)
+
+- Node 22 o superior
+- Docker Desktop (solo para la base de datos) o un PostgreSQL 16 propio
+- git
+
+## Primer arranque
+
+```bash
+git clone https://github.com/bmedinaApros/apros-consultores-radar-apros.git
+cd apros-consultores-radar-apros
+git checkout feat/fase-1-fundaciones
+npm ci
+cp .env.example .env
+```
+
+Edita `.env` y reemplaza `SESSION_SECRET` por un valor aleatorio:
+
+```bash
+openssl rand -base64 48
+```
+
+Levanta la base de datos, aplica las migraciones y carga los usuarios ficticios:
+
+```bash
+docker compose up -d db
+set -a && . ./.env && set +a
+npm run db:migrate
+npm run db:seed
+```
+
+Arranca la aplicación:
+
+```bash
+npm run dev
+```
+
+Abre http://localhost:3000. En local verás un **acceso de desarrollo** con cinco usuarios ficticios, uno por rol. Ese acceso no existe en producción (ver `docs/SECURITY.md`).
+
+## Comandos
+
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript estricto |
+| `npm test` | Pruebas (necesitan PostgreSQL; ver abajo) |
+| `npm run build` | Compilación de producción |
+| `npm run db:migrate` | Aplica migraciones pendientes |
+| `npm run db:seed` | Crea usuarios ficticios de desarrollo |
+| `npm run audit:deps` | Falla ante vulnerabilidades altas o críticas |
+
+Las pruebas usan la base `radar_test`. Con `docker compose up -d db` ya existe, con los roles `radar_owner` y `radar_app` de desarrollo. La base de pruebas se recrea en cada ejecución.
+
+## Acceso con Google (cuando haya servidor)
+
+1. Alguien con acceso administrador al Google Workspace de APROS crea un cliente OAuth en Google Cloud Console (tipo "Aplicación web").
+2. URI de redirección autorizada: `https://<dominio-de-radar>/api/auth/google/callback`.
+3. Define `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `APP_URL`, `AUTH_ALLOWED_DOMAINS` e `INITIAL_ADMIN_EMAILS` en el entorno del servidor.
+4. Deja `DEV_LOGIN_ENABLED=false` y `NODE_ENV=production`. La aplicación no arranca en producción con el acceso de desarrollo activo.
+
+## Estructura
+
+```
+src/app          Páginas y rutas (Next.js App Router)
+src/lib          Reglas de negocio: roles, sesiones, auditoría, usuarios
+migrations       Migraciones SQL versionadas
+tests            Pruebas (Vitest, contra PostgreSQL real)
+docs             Plan, decisiones, metodología, marca y seguridad
+assets/brand     Logotipos oficiales (no modificar)
+```
+
+## Marca
+
+Los tokens de diseño están en `src/app/globals.css` y derivan de `docs/brand/design.md`. Falta el isotipo solo; no se usa hasta recibirlo. Las fuentes (Questrial y Roboto) se sirven localmente desde `@fontsource` (licencias SIL OFL y Apache 2.0).

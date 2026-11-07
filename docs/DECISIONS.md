@@ -28,3 +28,7 @@
 | D-24 | La lista semanal es un snapshot inmutable; una empresa no reaparece salvo que una señal relevante cambie. | Reproducibilidad y no repetir listas. | Sí |
 | D-25 | Fase 4 entrega la primera lista semanal usable; el piloto de 30 diagnósticos pasa a la fase 5. | La lista semanal es el valor principal. | Sí |
 | D-26 | Catálogo de servicios APROS: ejemplo editable hasta que el usuario entregue el real. | No inventar la oferta de APROS. | Sí |
+| D-27 | TypeScript fijado en 5.9.x (no 7.x). | `typescript-eslint` aún no soporta TypeScript 6.1 o superior; usar 7.x rompería el lint. Se revisará al actualizar. | Sí |
+| D-28 | Sesiones propias en PostgreSQL (token aleatorio con hash SHA-256) en lugar de una biblioteca de autenticación. | Permite revocación inmediata y menos dependencias; solo hay un proveedor (Google). | Sí |
+| D-29 | Auditoría con cadena de hashes y triggers de solo inserción. | Detecta manipulación aun si alguien con acceso a la base la intenta. | Sí |
+| D-30 | Docker Compose levanta solo PostgreSQL; la aplicación corre con `npm run dev` en la Mac. | Más simple y rápido de depurar; el `Dockerfile` queda para producción. | Sí |

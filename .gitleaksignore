@@ -1,0 +1,2 @@
+# Falso positivo: valor de ejemplo en .env.example del primer commit (ya reemplazado por un valor vacío).
+6ff84488175e936fe3c34e5a6e2b600ee12edcf4:.env.example:generic-api-key:11
