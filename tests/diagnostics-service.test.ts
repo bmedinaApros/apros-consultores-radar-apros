@@ -5,7 +5,7 @@ import { analyzeCompany } from "@/lib/analyzer/run";
 import { scoreCompany } from "@/lib/scoring/service";
 import { ForbiddenError } from "@/lib/rbac";
 import {
-  approveDiagnostic, canViewDiagnostic, DiagnosticError, editDiagnostic, generateDiagnostic, getDiagnosticDetail, getTemplate, listDiagnostics,
+  approveDiagnostic, DiagnosticError, editDiagnostic, generateDiagnostic, getDiagnosticDetail, getTemplate, listDiagnostics,
   loadExportable, recordExport, rejectDiagnostic, saveTemplate, submitForReview,
 } from "@/lib/diagnostics/service";
 import { simulatedProvider, AiRefusalError, type AiProvider } from "@/lib/diagnostics/ai";
@@ -222,7 +222,6 @@ describe("visibilidad (D-62: todos ven todo)", () => {
       expect(await listDiagnostics(who)).toHaveLength(1);
       expect((await getDiagnosticDetail(who, g.diagnosticId))?.diagnostic.status).toBe("draft");
     }
-    expect(canViewDiagnostic(s.sales, { status: "draft" }, { owner_id: other.id })).toBe(true);
     await expect(loadExportable(s.sales, g.diagnosticId)).rejects.toThrow(/aprobado/);
     await submitForReview(s.lead, g.diagnosticId);
     await approveDiagnostic(s.consultant, g.diagnosticId);

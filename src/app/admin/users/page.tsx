@@ -14,8 +14,8 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const me = await requirePermissionPage("users.manage");
   const { ok, error } = await searchParams;
   const users = await listUsers();
-  const extra = new Map((await pool().query<{ id: string; locked_until: Date | null; has_password: boolean; must_change_password: boolean }>(
-    `SELECT id, locked_until, (password_hash IS NOT NULL) AS has_password, must_change_password FROM users`)).rows.map((r) => [r.id, r]));
+  const extra = new Map((await pool().query<{ id: string; locked_until: Date | null; locked: boolean; has_password: boolean; must_change_password: boolean }>(
+    `SELECT id, locked_until, (locked_until IS NOT NULL AND locked_until > now()) AS locked, (password_hash IS NOT NULL) AS has_password, must_change_password FROM users`)).rows.map((r) => [r.id, r]));
   return (
     <AppShell user={me} current="/admin/users">
       <h1>Usuarios y accesos</h1>
@@ -37,7 +37,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
           <tbody>
             {users.map((u) => {
               const x = extra.get(u.id);
-              const locked = x?.locked_until && x.locked_until.getTime() > Date.now();
+              const locked = x?.locked === true;
               return (
                 <tr key={u.id}>
                   <td>{u.email}</td>

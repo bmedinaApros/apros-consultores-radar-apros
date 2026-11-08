@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { pool } from "./db";
 import { env } from "./env";
+import { parseUiPrefs, type UiPrefs } from "./nav";
 import type { Role } from "./rbac";
 
 export const SESSION_ABSOLUTE_MS = 12 * 60 * 60 * 1000;
@@ -32,6 +33,7 @@ export interface SessionUser {
   csrfSecret: string;
   /** Sesión que solo puede cambiar la clave temporal. */
   restricted: boolean;
+  uiPrefs: UiPrefs;
 }
 
 export async function createSession(userId: string, userAgent: string | null, opts: { restricted?: boolean } = {}) {
@@ -60,8 +62,9 @@ export async function getSessionUser(token: string | undefined, opts: { allowRes
     role: Role;
     csrf_secret: string;
     restricted: boolean;
+    ui_prefs: unknown;
   }>(
-    `SELECT s.id, s.user_id, u.email, u.name, u.role, s.csrf_secret, s.restricted
+    `SELECT s.id, s.user_id, u.email, u.name, u.role, s.csrf_secret, s.restricted, u.ui_prefs
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = $1
         AND s.revoked_at IS NULL
@@ -82,6 +85,7 @@ export async function getSessionUser(token: string | undefined, opts: { allowRes
     role: row.role,
     csrfSecret: row.csrf_secret,
     restricted: row.restricted,
+    uiPrefs: parseUiPrefs(row.ui_prefs),
   };
 }
 

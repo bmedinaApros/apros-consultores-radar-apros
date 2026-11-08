@@ -340,8 +340,7 @@ export interface DiagnosticSummary {
   id: string; company_id: string; company_name: string; company_domain: string | null; status: DiagRow["status"]; stale: boolean; version: number; blocking_flags: number; source: string; updated_at: Date; owner_id: string | null;
 }
 
-/** Todos los usuarios con acceso ven todos los diagnósticos (D-62). Exportar sigue exigiendo que esté aprobado. */
-export const canViewDiagnostic = (_actor: { id: string; role: Role }, _d: { status: string }, _company: { owner_id: string | null }): boolean => true;
+// Todos los usuarios con acceso ven todos los diagnósticos (D-62). Exportar sigue exigiendo que estén aprobados.
 
 export async function listDiagnostics(actor: { id: string; role: Role }, f: { status?: string } = {}): Promise<DiagnosticSummary[]> {
   const where: string[] = [];
@@ -368,7 +367,7 @@ export async function getDiagnosticDetail(actor: { id: string; role: Role }, id:
             c.legal_name AS company_name, c.domain AS company_domain, c.owner_id, i.name AS industry_name, ua.email AS approved_by_email, uc.email AS created_by_email
        FROM diagnostics d JOIN companies c ON c.id = d.company_id LEFT JOIN industries i ON i.id = c.industry_id LEFT JOIN users ua ON ua.id = d.approved_by LEFT JOIN users uc ON uc.id = d.created_by WHERE d.id = $1`, [id]);
   const d = dr.rows[0];
-  if (!d || !can(actor.role, "companies.read") || !canViewDiagnostic(actor, d, d)) return null;
+  if (!d || !can(actor.role, "companies.read")) return null;
   const { v } = await loadDiag(id);
   const [versions, events, gens] = await Promise.all([
     pool().query(`SELECT v.id, v.version, v.source, v.blocking_flags, v.created_at, u.email AS edited_by_email FROM diagnostic_versions v LEFT JOIN users u ON u.id = v.edited_by WHERE v.diagnostic_id = $1 ORDER BY v.version DESC`, [id]),

@@ -1,58 +1,23 @@
-import Image from "next/image";
-import Link from "next/link";
+import { ChromeProvider, SideNav, Topbar } from "./chrome";
+import { visibleNav } from "@/lib/nav";
+import { ROLE_LABELS } from "@/lib/rbac";
 import { csrfToken, type SessionUser } from "@/lib/session";
-import { ROLE_LABELS, can } from "@/lib/rbac";
 
-interface NavItem {
-  href: string;
-  label: string;
-  show: boolean;
-}
-
-export function AppShell({ user, current, children }: { user: SessionUser; current: string; children: React.ReactNode }) {
-  const items: NavItem[] = [
-    { href: "/", label: "Inicio", show: true },
-    { href: "/weekly", label: "Lista semanal", show: can(user.role, "weekly.read") },
-    { href: "/inbox", label: "Bandeja", show: can(user.role, "weekly.read") },
-    { href: "/diagnostics", label: "Diagnósticos", show: can(user.role, "companies.read") },
-    { href: "/companies", label: "Empresas", show: can(user.role, "companies.read") },
-    { href: "/companies/import", label: "Importar CSV", show: can(user.role, "companies.import") },
-    { href: "/companies/duplicates", label: "Duplicados", show: user.role === "admin" || user.role === "sales_lead" },
-    { href: "/admin/dnc", label: "No contactar", show: can(user.role, "dnc.manage") },
-    { href: "/admin/clients", label: "Clientes activos", show: can(user.role, "catalog.manage") },
-    { href: "/admin/industries", label: "Rubros", show: can(user.role, "catalog.manage") },
-    { href: "/admin/signals", label: "Señales por rubro", show: can(user.role, "catalog.manage") },
-    { href: "/admin/models", label: "Modelos de puntaje", show: can(user.role, "catalog.manage") },
-    { href: "/admin/services", label: "Servicios de APROS", show: can(user.role, "catalog.manage") },
-    { href: "/admin/weekly", label: "Ejecución semanal", show: can(user.role, "catalog.manage") },
-    { href: "/admin/ai", label: "IA y presupuesto", show: can(user.role, "catalog.manage") },
-    { href: "/admin/sources", label: "Fuentes", show: can(user.role, "sources.manage") },
-    { href: "/admin/users", label: "Usuarios", show: can(user.role, "users.manage") },
-    { href: "/admin/audit", label: "Auditoría", show: can(user.role, "audit.read") },
-  ];
+/**
+ * Marco de todas las pantallas: menú lateral por tareas (colapsable, con panel móvil), barra superior con búsqueda
+ * global y menú de cuenta, y el contenido. El grupo y la página activos se calculan en el cliente a partir de la ruta.
+ */
+export function AppShell({ user, children }: { user: SessionUser; current?: string; children: React.ReactNode }) {
+  const { main, settings } = visibleNav(user.role);
   return (
-    <div className="shell">
-      <aside className="sidebar">
-        <Image className="logo" src="/brand/apros-logotipo-horizontal-blanco.png" alt="APROS" width={512} height={112} unoptimized priority />
-        <nav className="nav" aria-label="Principal">
-          {items.filter((i) => i.show).map((i) => (
-            <Link key={i.href} href={i.href} aria-current={i.href === current ? "page" : undefined}>
-              {i.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="user">
-          <strong>{user.name || user.email}</strong>
-          {ROLE_LABELS[user.role]}
-          <form action="/api/auth/logout" method="post" className="stack">
-            <input type="hidden" name="csrf" value={csrfToken(user.csrfSecret)} />
-            <button className="btn btn-secondary btn-small" type="submit">Cerrar sesión</button>
-          </form>
-        </div>
-      </aside>
-      <main id="contenido" className="main" tabIndex={-1}>
-        {children}
-      </main>
-    </div>
+    <ChromeProvider initialCollapsed={user.uiPrefs.navCollapsed}>
+      <SideNav main={main} settings={settings} />
+      <div className="content-col">
+        <Topbar user={{ name: user.name, email: user.email, roleLabel: ROLE_LABELS[user.role] }} csrf={csrfToken(user.csrfSecret)} />
+        <main id="contenido" className="main" tabIndex={-1}>
+          {children}
+        </main>
+      </div>
+    </ChromeProvider>
   );
 }
