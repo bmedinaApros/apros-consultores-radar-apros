@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/current-user";
+import { getCurrentUser, getCurrentUserAllowRestricted } from "@/lib/current-user";
 import { env, isDevLoginAllowed } from "@/lib/env";
 import { googleConfigured } from "@/lib/google";
 import { listUsers } from "@/lib/users";
@@ -8,6 +8,8 @@ import { listUsers } from "@/lib/users";
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
+  credenciales_invalidas: "Usuario o clave incorrectos, o la cuenta está bloqueada temporalmente.",
+  demasiados_intentos: "Demasiados intentos desde este equipo. Espera unos minutos e inténtalo de nuevo.",
   dominio_no_autorizado: "Tu correo no pertenece a un dominio autorizado.",
   usuario_inactivo: "Tu usuario está desactivado. Habla con un administrador.",
   correo_no_verificado: "Google indica que tu correo no está verificado.",
@@ -19,9 +21,11 @@ const ERRORS: Record<string, string> = {
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   if (await getCurrentUser()) redirect("/");
+  if (await getCurrentUserAllowRestricted()) redirect("/account/password");
   const { error } = await searchParams;
   const dev = isDevLoginAllowed(env());
   const devUsers = dev ? await listUsers() : [];
+  const google = googleConfigured();
   return (
     <div className="login">
       <section className="login-hero">
@@ -36,10 +40,23 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             {ERRORS[error]}
           </div>
         )}
-        <a className="btn btn-primary" href="/api/auth/google/start" aria-disabled={!googleConfigured()}>
-          Ingresar con Google
-        </a>
-        {!googleConfigured() && <p className="muted">Google aún no está configurado en este entorno.</p>}
+        <form method="post" action="/api/auth/login" className="stack">
+          <div>
+            <label htmlFor="login-email">Correo</label>
+            <input id="login-email" name="email" type="email" autoComplete="username" maxLength={254} required />
+          </div>
+          <div>
+            <label htmlFor="login-password">Clave</label>
+            <input id="login-password" name="password" type="password" autoComplete="current-password" maxLength={200} required />
+          </div>
+          <button className="btn btn-primary" type="submit">Ingresar</button>
+          <p className="muted">¿No tienes acceso o olvidaste tu clave? Pídele a un administrador que te cree o restablezca el acceso.</p>
+        </form>
+        {google && (
+          <a className="btn btn-secondary" href="/api/auth/google/start">
+            Ingresar con Google
+          </a>
+        )}
         {dev && (
           <form method="post" action="/api/auth/dev-login" className="card stack">
             <h3>Acceso de desarrollo</h3>

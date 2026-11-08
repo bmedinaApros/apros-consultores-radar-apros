@@ -17,7 +17,8 @@
     "db:rollback": "node --env-file=.env scripts/migrate.mjs down",
     "db:seed": "tsx --env-file=.env scripts/seed-dev.ts",
     "audit:deps": "npm audit --audit-level=high",
-    "worker": "tsx --env-file=.env scripts/worker.ts"
+    "worker": "tsx --env-file=.env scripts/worker.ts",
+    "user:create": "tsx --env-file=.env scripts/create-user.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

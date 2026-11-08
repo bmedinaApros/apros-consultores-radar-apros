@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return new NextResponse("Origen no permitido", { status: 403 });
   const store = await cookies();
-  const user = await getSessionUser(store.get(sessionCookieName())?.value);
+  const user = await getSessionUser(store.get(sessionCookieName())?.value, { allowRestricted: true });
   const res = NextResponse.redirect(new URL("/login", env().APP_URL), 303);
   if (user) {
     const form = await request.formData();
