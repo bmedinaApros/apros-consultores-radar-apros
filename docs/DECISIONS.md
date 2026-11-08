@@ -61,3 +61,4 @@
 | D-57 | PDF con pdfkit (sin navegador) en una sola página; PPTX con pptxgenjs. Reemplaza D-08 para el PDF. | Menos dependencias en el servidor; control de desbordes. | Sí |
 | D-58 | Sin `fallbacks` de rechazo del lado del servidor: un rechazo del modelo se muestra a una persona. | Evitar texto de otro modelo sin que nadie lo note. | Sí |
 | D-59 | La exportación solo existe en `loadExportable` (servidor) y se audita; el botón no es un control. | Flujo de aprobación forzado. | No |
+| D-60 | Google Places queda descartada como fuente de descubrimiento: sus términos (3.2.3 y 14.3) prohíben guardar nombres, direcciones y sitios, salvo latitud/longitud 30 días. | Revisión de términos del 2026-11-07; no es opinión legal. | Sí, si cambian los términos o Legal lo permite |
