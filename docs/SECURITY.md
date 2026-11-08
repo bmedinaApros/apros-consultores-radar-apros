@@ -104,3 +104,15 @@ Las pruebas de SSRF usan servidores locales con direcciones públicas simuladas 
 - **Secretos:** `ANTHROPIC_API_KEY` solo por variable de entorno; nunca se registra ni se muestra. Los errores del proveedor se sanean.
 - **Datos enviados:** ver `docs/AI-DATA.md`.
 - **Pendiente:** limitador de descargas en memoria (una sola instancia); prueba real con clave de Anthropic.
+
+## Acceso con usuario y contraseña (V2-1)
+
+- **Almacenamiento:** `scrypt` de Node (N=32768, r=8, p=1), sal de 16 bytes por usuario, parámetros guardados junto al hash (se pueden subir sin invalidar claves). Comparación en tiempo constante. Un hash guardado con parámetros fuera de rango se rechaza sin calcularlo (no puede agotar memoria).
+- **Política:** mínimo 12 caracteres, máximo 200, sin el correo y sin una lista corta de claves comunes. Sin rotación forzada. La lista de claves comunes es corta a propósito: la longitud mínima hace el trabajo principal.
+- **Fuerza bruta:** límite por IP (30 intentos por 15 min, en memoria) y bloqueo por cuenta cada 5 fallos seguidos: 15 min, luego 30, 60… hasta 24 h; un ingreso correcto reinicia el contador. La sentencia que cuenta y bloquea es una sola (sin carreras). Los fallos al cambiar la clave propia también cuentan.
+- **Sin enumeración de usuarios:** usuario inexistente, clave incorrecta, cuenta desactivada y cuenta bloqueada responden igual y tardan lo mismo (se verifica contra un hash de relleno). La causa real queda en la auditoría.
+- **Clave temporal:** la crea el administrador (o el comando local), se muestra una sola vez en la respuesta (no en la URL ni en el registro) y el primer ingreso queda en una **sesión restringida**: toda ruta, acción y API trata esa sesión como inexistente salvo la pantalla de cambio de clave y el cierre de sesión. Es la opción por defecto del código, no una comprobación que cada ruta deba recordar.
+- **Sesiones:** al cambiar o restablecer la clave se cierran las demás sesiones del usuario. El cierre de sesión funciona también con sesión restringida.
+- **Auditoría:** ingresos, fallos (con motivo, sin la clave), cambios, restablecimientos, desbloqueos y altas.
+- **Primer administrador:** `npm run user:create` (consola del servidor; pide la clave sin mostrarla; la clave nunca se pasa como argumento).
+- **Límites conocidos:** no hay segundo factor (recomendado antes de publicar en internet); el limitador por IP vive en memoria y confía en `X-Forwarded-For` (ver límites de la fase 1); una lista completa de claves filtradas no está incluida; exige HTTPS en producción (cookie `__Host-`).

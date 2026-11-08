@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { loginWithPassword } from "@/lib/auth-password";
 import { env } from "@/lib/env";
-import { clientKey, loginLimiter } from "@/lib/rate-limit";
+import { clientKey, passwordLoginLimiter } from "@/lib/rate-limit";
 import { isSameOrigin } from "@/lib/request-guard";
 import { sessionCookieName, sessionCookieOptions } from "@/lib/session";
 
@@ -13,7 +13,7 @@ const back = (error: string) => NextResponse.redirect(new URL(`/login?error=${er
 /** Inicio de sesión con correo y clave. Mismo origen obligatorio, límite por IP y un único mensaje de error. */
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return new NextResponse("Origen no permitido", { status: 403 });
-  if (!loginLimiter.check(clientKey(request)).allowed) return back("demasiados_intentos");
+  if (!passwordLoginLimiter.check(clientKey(request)).allowed) return back("demasiados_intentos");
   const form = await request.formData();
   const email = String(form.get("email") ?? "");
   const password = String(form.get("password") ?? "");

@@ -298,7 +298,7 @@ function AccountMenu({ user, csrf }: { user: { name: string; email: string; role
       onKeyDown={(e) => { if (e.key === "Escape" && open) { e.preventDefault(); setOpen(false); btnRef.current?.focus(); } }}
       onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false); }}
     >
-      <button ref={btnRef} type="button" className="account-btn" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen((v) => !v)}>
+      <button ref={btnRef} type="button" className="account-btn" aria-label={`Cuenta de ${user.name || user.email}`} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen((v) => !v)}>
         <span className="avatar" aria-hidden="true">{initial}</span>
         <span className="account-name">{user.name || user.email}</span>
         <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" />

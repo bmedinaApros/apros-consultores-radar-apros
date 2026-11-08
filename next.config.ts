@@ -6,6 +6,8 @@ const config: NextConfig = {
   // pdfkit lee sus métricas de fuentes (.afm) del disco; hay que incluirlas en la salida standalone
   outputFileTracingIncludes: { "/api/diagnostics/[id]/export": ["./assets/**/*", "./node_modules/pdfkit/js/data/**/*"] },
   poweredByHeader: false,
+  // El indicador flotante de desarrollo tapaba el botón de colapsar del menú; los errores siguen mostrándose.
+  devIndicators: false,
   reactStrictMode: true,
   async headers() {
     return [

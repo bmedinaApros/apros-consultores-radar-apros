@@ -243,6 +243,18 @@ Hoy el único acceso real es Google (más un acceso de desarrollo que solo exist
 
 ## 10. Lo que sigue pendiente
 
+**Resuelto el 2026-11-07 (respuestas a esta sección):**
+- **10.1 CIIU:** no existe el conjunto «RUC con CIIU». El rubro se asigna con reglas sobre la razón social y la web, con confirmación humana. La tabla CIIU→rubro queda para cuando haya una fuente.
+- **10.2 Columnas del padrón:** el enlace dado fue https://www.sunat.gob.pe/. Las columnas se confirman con la primera lectura del archivo real en tu Mac (el importador rechaza lo que no coincida con la cabecera esperada).
+- **10.3 Fuentes sin respuesta:** modo asistido.
+- **10.5 Permisos:** se retira D-50; todos ven todo (hecho en V2-1, D-62).
+- **10.6 webappanalyzer:** no se añade (D-64). La detección de tecnologías se amplía con firmas propias.
+- **10.7 Aprobación:** v2.1 aprobada; V2-1 implementada.
+
+**Sigue pendiente:** el correo de contacto para el User-Agent de Overpass (10.4, al activar OSM).
+
+*(Texto original de la sección, para trazabilidad:)*
+
 1. **CIIU.** En datosabiertos no encontré un conjunto «RUC con CIIU». ¿Tienes el enlace? Si no existe, el rubro se asigna con reglas por palabras de la razón social y la web, con confirmación humana, y la tabla CIIU→rubro queda para cuando haya una fuente.
 2. **Columnas del padrón reducido.** El archivo está en `www2.sunat.gob.pe`, que no tengo habilitado. Puedes (a) permitirme ese host para leer solo los primeros kilobytes y confirmar las columnas, o (b) correr en tu Mac un comando que te daré para ver la cabecera y pegarme el resultado.
 3. **Fuentes sin respuesta** (Computrabajo, Get on Board, CCL, SEACE/OECE, Overpass, dominio de términos de Páginas Amarillas, `laborum.pe` sin `www`): varias están habilitadas pero no respondieron desde el entorno, y SEACE respondió 403 (no se elude). O pegas tú los textos de términos desde el navegador, o las dejamos en modo asistido.

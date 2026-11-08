@@ -15,7 +15,6 @@ Estado: **fase 4 de 8 (Puntaje y lista semanal)**. Incluye acceso con Google Wor
 ```bash
 git clone https://github.com/bmedinaApros/apros-consultores-radar-apros.git
 cd apros-consultores-radar-apros
-git checkout feat/fase-4-lista-semanal
 npm ci
 cp .env.example .env
 ```
@@ -40,7 +39,17 @@ Arranca la aplicación:
 npm run dev
 ```
 
-Abre http://localhost:3000. En local verás un **acceso de desarrollo** con cinco usuarios ficticios, uno por rol. Ese acceso no existe en producción (ver `docs/SECURITY.md`).
+Abre http://localhost:3000. En local verás un **acceso de desarrollo** con usuarios ficticios, uno por rol. Ese acceso no existe en producción (ver `docs/SECURITY.md`).
+
+### Entrar con usuario y clave
+
+El acceso normal es con correo y clave. Crea tu usuario administrador desde la consola (pide la clave sin mostrarla; mínimo 12 caracteres):
+
+```bash
+npm run user:create -- --email tu@apros.pe --name "Tu Nombre" --role admin
+```
+
+Para generar una clave temporal en lugar de elegirla, agrega `--generate` (te la muestra una vez y te obliga a cambiarla al entrar). Después, un administrador crea al resto de personas en **Configuración → Usuarios y accesos**: se genera una clave temporal que se muestra una sola vez. Si alguien olvida su clave o su cuenta se bloquea (5 intentos fallidos), el administrador la restablece o la desbloquea desde esa misma pantalla.
 
 ## Probar la importación
 
