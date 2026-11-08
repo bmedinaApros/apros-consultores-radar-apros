@@ -19,6 +19,9 @@ export const PERMISSIONS = [
   "companies.read",
   "companies.write",
   "companies.import",
+  "registry.read", // ver el padrón y sus locales
+  "registry.promote", // pasar empresas del padrón a empresas de trabajo
+  "registry.import", // cargar archivos del padrón
   "analysis.run",
   "weekly.read",
   "weekly.run",
@@ -40,6 +43,9 @@ const MATRIX: Record<Role, readonly Permission[]> = {
     "companies.read",
     "companies.write",
     "companies.import",
+    "registry.read",
+    "registry.promote",
+    "registry.import",
     "weekly.read",
     "weekly.run",
     "weekly.review",
@@ -50,9 +56,11 @@ const MATRIX: Record<Role, readonly Permission[]> = {
     "analysis.run",
     "dashboard.read",
   ],
-  salesperson: ["companies.read", "companies.write", "analysis.run", "weekly.read", "pipeline.write", "diagnostics.export", "dashboard.read"],
+  salesperson: ["companies.read", "companies.write", "registry.read", "registry.promote", "analysis.run", "weekly.read", "pipeline.write", "diagnostics.export", "dashboard.read"],
   consultant: [
     "companies.read",
+    "registry.read",
+    "registry.promote",
     "weekly.read",
     "weekly.review",
     "scoring.adjust",
@@ -62,7 +70,7 @@ const MATRIX: Record<Role, readonly Permission[]> = {
     "analysis.run",
     "dashboard.read",
   ],
-  read_only: ["companies.read", "weekly.read", "dashboard.read"],
+  read_only: ["companies.read", "registry.read", "weekly.read", "dashboard.read"],
 };
 
 export function can(role: Role, permission: Permission): boolean {
