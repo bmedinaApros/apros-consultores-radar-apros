@@ -80,8 +80,7 @@ export default async function WeeklyPage({ params, searchParams }: { params: Pro
         {(Object.keys(REVIEW) as (keyof typeof REVIEW)[]).map((k) => <Link key={k} className="btn btn-secondary btn-small" href={`/weekly/${id}?review=${k}`}>{REVIEW[k]}</Link>)}
       </nav>
       {items.length === 0 ? (
-        <div className="card empty"><h2>{user.role === "salesperson" ? "Aún no tienes empresas aprobadas en esta lista" : "No hay empresas con este filtro"}</h2>
-          {user.role === "salesperson" && <p>Una persona del equipo revisa cada empresa antes de que un vendedor la use.</p>}</div>
+        <div className="card empty"><h2>No hay empresas con este filtro</h2></div>
       ) : items.map((it) => (
         <article key={it.id} className="card stack" aria-labelledby={`it-${it.id}`}>
           <div className="row">

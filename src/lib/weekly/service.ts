@@ -46,10 +46,6 @@ export async function listItems(actor: { id: string; role: Role }, listId: strin
   const params: unknown[] = [listId];
   if (filter.review) { params.push(filter.review); where.push(`i.review_status = $${params.length}`); }
   if (filter.band) { params.push(filter.band); where.push(`i.band = $${params.length}`); }
-  if (actor.role === "salesperson") {
-    params.push(actor.id);
-    where.push(`i.review_status = 'approved' AND (c.owner_id IS NULL OR c.owner_id = $${params.length})`);
-  }
   return (await pool().query<ItemRow>(
     `SELECT i.id, i.list_id, i.rank, i.company_id, i.company_name, i.company_domain, i.score, i.band, i.model_name, i.model_version, i.data_coverage, i.services, i.reasons, i.flags,
             i.review_status, i.reviewed_by, i.reviewed_at, i.review_note, i.assigned_to, u.email AS assigned_email, c.owner_id, ind.name AS industry_name, c.city
@@ -110,20 +106,15 @@ export interface InboxRow {
 }
 export const INBOX_PAGE = 25;
 
-/** Bandeja de empresas con puntaje. Un vendedor solo ve lo aprobado por el equipo que es suyo o está libre. */
+/** Bandeja de empresas con puntaje. Todos los usuarios ven todo (D-62: se retira la restricción D-50). */
 export async function listInbox(actor: { id: string; role: Role }, f: InboxFilters): Promise<{ rows: InboxRow[]; total: number }> {
   const where: string[] = ["s.disqualified = false"];
   const params: unknown[] = [];
   const p = (v: unknown) => { params.push(v); return `$${params.length}`; };
-  if (actor.role === "salesperson") {
-    where.push(`(c.owner_id IS NULL OR c.owner_id = ${p(actor.id)})`);
-    where.push(`li.review_status = 'approved'`);
-  } else {
-    if (f.owner === "mine") where.push(`c.owner_id = ${p(actor.id)}`);
-    else if (f.owner === "unassigned") where.push(`c.owner_id IS NULL`);
-    else if (f.owner && f.owner !== "any") where.push(`c.owner_id = ${p(f.owner)}::uuid`);
-    if (f.review) where.push(`li.review_status = ${p(f.review)}`);
-  }
+  if (f.owner === "mine") where.push(`c.owner_id = ${p(actor.id)}`);
+  else if (f.owner === "unassigned") where.push(`c.owner_id IS NULL`);
+  else if (f.owner && f.owner !== "any") where.push(`c.owner_id = ${p(f.owner)}::uuid`);
+  if (f.review) where.push(`li.review_status = ${p(f.review)}`);
   if (f.industryId) where.push(`c.industry_id = ${p(f.industryId)}`);
   if (f.city) where.push(`lower(c.city) = ${p(f.city.toLowerCase())}`);
   if (f.band) where.push(`s.band = ${p(f.band)}`); else where.push(`s.band <> 'discard'`);

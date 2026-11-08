@@ -195,26 +195,25 @@ describe("ejecución semanal", () => {
 });
 
 describe("revisión humana antes del uso comercial", () => {
-  it("un vendedor no ve nada hasta que una persona del equipo aprueba y asigna", async () => {
+  it("todos ven todo (D-62); la aprobación de una persona del equipo asigna la empresa", async () => {
     const { admin, deps, ids } = await setup();
     const r = await runWeeklyPipeline({ triggeredBy: admin.id, kind: "manual" }, { analyzer: deps, skipDiscovery: true, now: () => T0 });
     const seller = await mkActor("salesperson", "ana@apros.pe");
     const other = await mkActor("salesperson", "beto@apros.pe");
     const consultant = await mkActor("consultant");
-    expect(await listItems(seller, r.listId!)).toEqual([]);
-    expect((await listInbox(seller, {})).rows).toEqual([]);
-
     const items = await listItems(admin, r.listId!);
+    expect((await listItems(seller, r.listId!)).map((i) => i.id).sort()).toEqual(items.map((i) => i.id).sort());
+    expect((await listInbox(seller, {})).rows.length).toBe(items.length);
+
     const alfa = items.find((i) => i.company_id === ids.a)!;
     await reviewItem(consultant, alfa.id, { decision: "approved", assignedTo: seller.id, note: "Buen encaje" });
 
     const mine = await listItems(seller, r.listId!);
-    expect(mine.map((i) => i.company_id)).toEqual([ids.a]);
-    expect(mine[0]).toMatchObject({ review_status: "approved", assigned_email: "ana@apros.pe" });
-    expect(await listItems(other, r.listId!)).toEqual([]); // asignada a otra persona
+    expect(mine.find((i) => i.company_id === ids.a)).toMatchObject({ review_status: "approved", assigned_email: "ana@apros.pe" });
+    expect((await listItems(other, r.listId!)).length).toBe(items.length); // otra persona sigue viendo todo
     expect((await pool().query("SELECT owner_id FROM companies WHERE id = $1", [ids.a])).rows[0].owner_id).toBe(seller.id);
-    expect((await listInbox(seller, {})).rows.map((x) => x.company_id)).toEqual([ids.a]);
-    expect((await listInbox(other, {})).rows).toEqual([]);
+    expect((await listInbox(other, {})).rows.map((x) => x.company_id)).toContain(ids.a);
+    expect((await listInbox(seller, { owner: "mine" })).rows.map((x) => x.company_id)).toEqual([ids.a]);
   });
 
   it("el rechazo exige motivo y solo revisa quien tiene permiso", async () => {

@@ -211,21 +211,23 @@ describe("exportación", () => {
   });
 });
 
-describe("visibilidad del vendedor", () => {
-  it("solo ve aprobados de empresas suyas o sin responsable", async () => {
+describe("visibilidad (D-62: todos ven todo)", () => {
+  it("cualquier usuario con acceso ve los diagnósticos en cualquier estado, pero solo se descarga lo aprobado", async () => {
     const s = await setup();
     const g = await generateDiagnostic(s.lead, s.id, { provider: sim });
-    expect(await listDiagnostics(s.sales)).toHaveLength(0);
-    expect(await getDiagnosticDetail(s.sales, g.diagnosticId)).toBeNull();
-    await submitForReview(s.lead, g.diagnosticId);
-    await approveDiagnostic(s.consultant, g.diagnosticId);
-    expect(await listDiagnostics(s.sales)).toHaveLength(1);
     const other = await mkActor("salesperson", "otro@apros.pe");
     await pool().query("UPDATE companies SET owner_id = $1 WHERE id = $2", [other.id, s.id]);
-    expect(await listDiagnostics(s.sales)).toHaveLength(0);
-    expect(await getDiagnosticDetail(s.sales, g.diagnosticId)).toBeNull();
-    expect(canViewDiagnostic(other, { status: "draft" }, { owner_id: other.id })).toBe(false);
-    expect((await getDiagnosticDetail(other, g.diagnosticId))!.generations).toEqual([]);
+    const ro = await mkActor("read_only");
+    for (const who of [s.sales, other, ro]) {
+      expect(await listDiagnostics(who)).toHaveLength(1);
+      expect((await getDiagnosticDetail(who, g.diagnosticId))?.diagnostic.status).toBe("draft");
+    }
+    expect(canViewDiagnostic(s.sales, { status: "draft" }, { owner_id: other.id })).toBe(true);
+    await expect(loadExportable(s.sales, g.diagnosticId)).rejects.toThrow(/aprobado/);
+    await submitForReview(s.lead, g.diagnosticId);
+    await approveDiagnostic(s.consultant, g.diagnosticId);
+    expect((await loadExportable(s.sales, g.diagnosticId)).diagnosticId).toBe(g.diagnosticId);
+    await expect(loadExportable(ro, g.diagnosticId)).rejects.toBeInstanceOf(ForbiddenError); // read_only no exporta
   });
 });
 
