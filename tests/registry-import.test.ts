@@ -9,7 +9,7 @@ import { resolveImportFile, SourceFileError } from "@/lib/registry/source";
 import { suggestIndustry } from "@/lib/registry/rubro";
 import { ForbiddenError } from "@/lib/rbac";
 import { mkActor, ownerPool, resetData } from "./helpers";
-import { toFile, useImportDir, writeSynthetic } from "./helpers-registry";
+import { toFile, makeImportDir, writeSynthetic } from "./helpers-registry";
 
 beforeEach(resetData);
 afterAll(() => pool().end());
@@ -83,7 +83,7 @@ describe("carga del padrón", () => {
   }
 
   it("carga solo lo que pasa el filtro (jurídicas, activas, habidas), con motivos de descarte y sin personas naturales", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeSynthetic(dir, "padron.txt", "ruc", 12_000);
     const { id, kind } = await createBatchInternal({ fileName: "padron.txt", sourceNote: "Archivo sintético" }, null);
     expect(kind).toBe("ruc");
@@ -103,7 +103,7 @@ describe("carga del padrón", () => {
   });
 
   it("reanuda tras una interrupción sin repetir ni perder filas (mismo resultado que una carga continua)", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeSynthetic(dir, "padron.txt", "ruc", 9000);
     const a = await createBatchInternal({ fileName: "padron.txt" }, null);
     await expect(runBatch(a.id, { chunkLines: 1000, crashAfterLines: 3000 })).rejects.toThrow(/Interrupción simulada/);
@@ -115,7 +115,7 @@ describe("carga del padrón", () => {
     const resumed = (await pool().query(`SELECT string_agg(ruc || legal_name, ',' ORDER BY ruc) AS s FROM registry_companies`)).rows[0].s;
 
     await resetData();
-    const dir2 = useImportDir();
+    const dir2 = makeImportDir();
     writeSynthetic(dir2, "padron.txt", "ruc", 9000);
     const b = await createBatchInternal({ fileName: "padron.txt" }, null);
     await runBatch(b.id, { chunkLines: 1000 });
@@ -124,7 +124,7 @@ describe("carga del padrón", () => {
   });
 
   it("si el archivo cambia entre un intento y otro, no reanuda (evita mezclar datos)", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     const file = writeSynthetic(dir, "padron.txt", "ruc", 3000);
     const a = await createBatchInternal({ fileName: "padron.txt" }, null);
     await expect(runBatch(a.id, { chunkLines: 500, crashAfterLines: 1000 })).rejects.toThrow();
@@ -134,7 +134,7 @@ describe("carga del padrón", () => {
   });
 
   it("lee .gz y .zip igual que el texto plano (se detecta por contenido, no por extensión)", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeSynthetic(dir, "plano.txt", "ruc", 2500);
     writeSynthetic(dir, "comprimido.gz", "ruc", 2500);
     writeSynthetic(dir, "zipeado.zip", "ruc", 2500);
@@ -149,7 +149,7 @@ describe("carga del padrón", () => {
   });
 
   it("rechaza un archivo con otra cabecera al crear la carga y no deja nada a medias", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeFileSync(path.join(dir, "raro.txt"), "COL1|COL2|COL3\n1|2|3\n");
     await expect(createBatchInternal({ fileName: "raro.txt" }, null)).rejects.toBeInstanceOf(RegistryError);
     writeFileSync(path.join(dir, "vacio.txt"), "");
@@ -158,7 +158,7 @@ describe("carga del padrón", () => {
   });
 
   it("tolera filas dañadas y líneas enormes: se cuentan como inválidas y la carga sigue", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     const file = writeSynthetic(dir, "padron.txt", "ruc", 1000);
     appendFileSync(file, Buffer.from("laredo07159|X|ACTIVO|HABIDO|130106|\n", "latin1"));
     appendFileSync(file, Buffer.from("20100000254|SOLO DOS|\n", "latin1"));
@@ -172,7 +172,7 @@ describe("carga del padrón", () => {
   });
 
   it("un RUC repetido dentro del archivo se carga una sola vez (gana el último)", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     const lines = [...syntheticLines("ruc", 50, 5)];
     const dup = lines.find((l, i) => i > 0 && l.startsWith("20") && l.split("|")[2] === "ACTIVO" && l.split("|")[3] === "HABIDO")!;
     const parts = dup.split("|");
@@ -187,7 +187,7 @@ describe("carga del padrón", () => {
   });
 
   it("una segunda carga con los mismos filtros actualiza lo existente y marca como «ya no aparece» lo que falta, sin borrar", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeSynthetic(dir, "v1.txt", "ruc", 4000, 1);
     const a = await createBatchInternal({ fileName: "v1.txt" }, null);
     await runBatch(a.id, { chunkLines: 1000 });
@@ -206,7 +206,7 @@ describe("carga del padrón", () => {
   });
 
   it("con filtros distintos a la carga anterior no marca nada como ausente", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeSynthetic(dir, "v1.txt", "ruc", 3000, 1);
     const a = await createBatchInternal({ fileName: "v1.txt" }, null);
     await runBatch(a.id);
@@ -216,7 +216,7 @@ describe("carga del padrón", () => {
   });
 
   it("una sola carga a la vez; una «en curso» sin latidos por 10 minutos se considera caída y se puede retomar", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeSynthetic(dir, "a.txt", "ruc", 500, 1);
     writeSynthetic(dir, "b.txt", "ruc", 500, 2);
     const a = await createBatchInternal({ fileName: "a.txt" }, null);
@@ -230,7 +230,7 @@ describe("carga del padrón", () => {
   });
 
   it("se puede cancelar una carga en curso: termina en el siguiente bloque y conserva lo cargado", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeSynthetic(dir, "padron.txt", "ruc", 6000);
     const admin = await mkActor("admin");
     const b = await createBatchInternal({ fileName: "padron.txt" }, admin.id);
@@ -246,7 +246,7 @@ describe("carga del padrón", () => {
   });
 
   it("solo administrador y líder cargan archivos; el resto no", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeSynthetic(dir, "padron.txt", "ruc", 100);
     for (const role of ["consultant", "salesperson", "read_only"] as const) {
       await expect(createBatch(await mkActor(role), { fileName: "padron.txt" })).rejects.toBeInstanceOf(ForbiddenError);
@@ -257,7 +257,7 @@ describe("carga del padrón", () => {
 
 describe("archivo de locales (establecimientos anexos)", () => {
   it("carga direcciones por RUC, sin personas naturales, y con «solo RUC conocidos» ignora los que no están en el padrón", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeSynthetic(dir, "padron.txt", "ruc", 3000, 1);
     const p = await createBatchInternal({ fileName: "padron.txt" }, null);
     await runBatch(p.id);
@@ -281,7 +281,7 @@ describe("archivo de locales (establecimientos anexos)", () => {
   });
 
   it("cargar dos veces el mismo archivo no duplica locales", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeSynthetic(dir, "anexo.txt", "anexo", 2000, 3);
     const a = await createBatchInternal({ fileName: "anexo.txt" }, null);
     await runBatch(a.id);
@@ -294,7 +294,7 @@ describe("archivo de locales (establecimientos anexos)", () => {
 
 describe("carpeta de importación", () => {
   it("solo acepta nombres simples dentro de la carpeta: sin rutas, sin escapes, sin enlaces que salgan", async () => {
-    const dir = useImportDir();
+    const dir = makeImportDir();
     writeFileSync(path.join(dir, "ok.txt"), "x");
     writeFileSync(path.join(dir, "malo.exe"), "x");
     const outside = path.join(dir, "..", "radar-secreto.txt");

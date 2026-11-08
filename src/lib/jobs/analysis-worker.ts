@@ -4,7 +4,8 @@ import { log } from "../logger";
 import { runWeeklyPipeline } from "../weekly/pipeline";
 import { generateDiagnostic } from "../diagnostics/service";
 import { pool } from "../db";
-import { ANALYZE_QUEUE, DIAGNOSTIC_QUEUE, WEEKLY_QUEUE, type AnalyzeJob, type DiagnosticJob, type WeeklyJob } from "./queue";
+import { runBatch } from "../registry/import";
+import { ANALYZE_QUEUE, DIAGNOSTIC_QUEUE, REGISTRY_QUEUE, WEEKLY_QUEUE, type AnalyzeJob, type DiagnosticJob, type RegistryJob, type WeeklyJob } from "./queue";
 
 /** Registra el procesador de análisis. Un fallo se reintenta; «omitido» y «completado» no. */
 export async function registerAnalysisWorker(boss: PgBoss, deps: AnalyzerDeps, concurrency = 2): Promise<void> {
@@ -42,6 +43,20 @@ export async function registerDiagnosticWorker(boss: PgBoss): Promise<void> {
       log("info", "diagnóstico generado", { companyId: job.data.companyId, version: r.version, blocking: r.blocking });
     } catch (e) {
       log("warn", "no se generó el diagnóstico", { companyId: job.data.companyId, error: (e as Error).message });
+    }
+  });
+}
+
+/** Registra el cargador del padrón (uno a la vez). El avance queda en la base; un fallo deja el punto de control para reanudar. */
+export async function registerRegistryWorker(boss: PgBoss): Promise<void> {
+  await boss.work<RegistryJob>(REGISTRY_QUEUE, { localConcurrency: 1, batchSize: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
+    if (!job) return;
+    log("info", "carga del padrón iniciada", { batchId: job.data.batchId });
+    try {
+      const b = await runBatch(job.data.batchId);
+      log("info", "carga del padrón terminada", { batchId: b.id, status: b.status, loaded: b.rows_loaded, skipped: b.rows_skipped });
+    } catch (e) {
+      log("warn", "la carga del padrón no terminó", { batchId: job.data.batchId, error: (e as Error).message });
     }
   });
 }

@@ -87,6 +87,24 @@ En la ficha de cada empresa están el desglose del puntaje, los criterios manual
 3. En **Diagnósticos** revisa el texto con su evidencia, envía a revisión y, con un usuario consultor, aprueba; entonces aparecen **Descargar PDF** y **Descargar PPTX**.
 4. Para IA real: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY=…` y, si quieres, `ANTHROPIC_MODEL`. Ajusta topes en **IA y presupuesto**. Primero lee `docs/AI-DATA.md`.
 
+## Cargar el padrón de SUNAT (V2-2, en construcción)
+
+1. Descarga `padron_reducido_ruc.zip` (y, opcional, `padron_reducido_local_anexo.zip`) desde la página de SUNAT y cópialos a la carpeta `data/import/` (no se sube al repositorio).
+2. Revisa el formato sin cargar nada:
+
+```bash
+npm run registry:import -- --file padron_reducido_ruc.zip --check
+```
+
+3. Carga (por defecto solo personas jurídicas, activas y habidas; se puede detener con Ctrl+C y reanudar con `--resume <id>`):
+
+```bash
+npm run registry:import -- --file padron_reducido_ruc.zip --note "Actualizado al 07/11/2026"
+npm run registry:import -- --file padron_reducido_local_anexo.zip --only-known
+```
+
+4. En la aplicación: **Prospectar → Buscar empresas** para filtrar y promover a la base, y **Importaciones del padrón** para cargar desde la pantalla (requiere el worker: `npm run worker`).
+
 ## Comandos
 
 | Comando | Qué hace |

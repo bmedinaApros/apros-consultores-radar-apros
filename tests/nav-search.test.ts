@@ -33,13 +33,18 @@ describe("menú por tareas", () => {
     const labels = (r: (typeof ROLES)[number]) => visibleNav(r).main.flatMap((g) => g.items.map((i) => i.label));
     const settings = (r: (typeof ROLES)[number]) => visibleNav(r).settings?.items.map((i) => i.label) ?? null;
     expect(settings("admin")).toEqual(NAV_SETTINGS.items.map((i) => i.label));
-    expect(labels("admin")).toEqual(expect.arrayContaining(["Empresas", "Importar CSV", "Fuentes", "Diagnósticos", "Duplicados"]));
+    expect(labels("admin")).toEqual(expect.arrayContaining(["Buscar empresas", "Empresas", "Importar CSV", "Importaciones del padrón", "Fuentes", "Diagnósticos", "Duplicados"]));
+    // Todos ven y buscan en el padrón; cargar archivos es de administrador y líder
+    for (const r of ROLES) expect(labels(r)).toContain("Buscar empresas");
+    expect(labels("sales_lead")).toContain("Importaciones del padrón");
+    for (const r of ["consultant", "salesperson", "read_only"] as const) expect(labels(r)).not.toContain("Importaciones del padrón");
+    expect(settings("admin")).toContain("Reglas de rubro");
     // El líder de ventas ve solo las dos entradas de Configuración que su permiso permite
     expect(settings("sales_lead")).toEqual(["No contactar", "Auditoría"]);
     expect(labels("sales_lead")).not.toContain("Fuentes");
     // Sin permisos de administración no hay Configuración
     for (const r of ["consultant", "salesperson", "read_only"] as const) expect(settings(r)).toBeNull();
-    expect(labels("read_only")).toEqual(["Empresas", "Lista semanal", "Bandeja de revisión", "Diagnósticos"]);
+    expect(labels("read_only")).toEqual(["Buscar empresas", "Empresas", "Lista semanal", "Bandeja de revisión", "Diagnósticos"]);
     expect(labels("salesperson")).not.toContain("Duplicados");
     // Inicio siempre está
     for (const r of ROLES) expect(visibleNav(r).main[0]).toMatchObject({ id: "inicio", href: "/" });
@@ -137,5 +142,33 @@ describe("búsqueda global", () => {
     expect((await searchCompanies("beta.example.com"))[0]!.dnc).toBe(false);
     for (let i = 0; i < 12; i++) await createCompany(admin, { legal_name: `Masiva ${i} SAC`, website: `masiva${i}.example.com`, industry: "Retail" });
     expect((await searchCompanies("masiva")).length).toBe(SEARCH_MAX_RESULTS);
+  });
+});
+
+describe("búsqueda global con el padrón", () => {
+  it("completa con empresas del padrón que aún no están en la base, sin duplicar las ya promovidas", async () => {
+    const { createBatchInternal, runBatch } = await import("@/lib/registry/import");
+    const { promoteRegistry } = await import("@/lib/registry/service");
+    const { makeImportDir, writeSynthetic } = await import("./helpers-registry");
+    const admin = await mkActor("admin");
+    const dir = makeImportDir();
+    writeSynthetic(dir, "padron.txt", "ruc", 1500, 1);
+    await runBatch((await createBatchInternal({ fileName: "padron.txt" }, admin.id)).id);
+    const row = (await pool().query<{ ruc: string; legal_name: string }>(`SELECT ruc, legal_name FROM registry_companies WHERE is_legal_entity ORDER BY ruc LIMIT 1`)).rows[0]!;
+    // RUC exacto: aparece como «padrón»
+    let hits = await searchCompanies(row.ruc);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ kind: "registry", id: row.ruc, ruc: row.ruc, name: row.legal_name });
+    // por nombre
+    const word = row.legal_name.split(" ")[0]!.toLowerCase();
+    expect((await searchCompanies(word)).every((h) => h.kind === "registry")).toBe(true);
+    // al promoverla pasa a ser empresa de trabajo y deja de repetirse como padrón
+    await promoteRegistry(admin, [row.ruc], "none");
+    hits = await searchCompanies(row.ruc);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ kind: "company", ruc: row.ruc });
+    // el límite se respeta y los dominios no consultan el padrón
+    expect((await searchCompanies(word)).length).toBeLessThanOrEqual(SEARCH_MAX_RESULTS);
+    expect(await searchCompanies("sitio-inexistente.example.com")).toEqual([]);
   });
 });

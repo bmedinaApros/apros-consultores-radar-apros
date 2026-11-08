@@ -6,14 +6,14 @@ import { seedExampleKeywords } from "@/lib/registry/rubro";
 import { getRegistryCompany, linkRucToCompany, promoteRegistry, PROMOTE_MAX, REGISTRY_PAGE, searchRegistry } from "@/lib/registry/service";
 import { ForbiddenError } from "@/lib/rbac";
 import { mkActor, resetData } from "./helpers";
-import { useImportDir, writeSynthetic } from "./helpers-registry";
+import { makeImportDir, writeSynthetic } from "./helpers-registry";
 
 beforeEach(resetData);
 afterAll(() => pool().end());
 
 async function setup(n = 3000) {
   const admin = await mkActor("admin");
-  const dir = useImportDir();
+  const dir = makeImportDir();
   await seedExampleKeywords(admin); // las palabras de ejemplo sugieren rubro al cargar
   writeSynthetic(dir, "padron.txt", "ruc", n, 1);
   writeSynthetic(dir, "anexo.txt", "anexo", n, 1);

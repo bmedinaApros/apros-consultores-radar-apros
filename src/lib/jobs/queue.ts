@@ -6,6 +6,9 @@ export const ANALYZE_QUEUE = "analyze-company";
 export const WEEKLY_QUEUE = "weekly-run";
 export const WEEKLY_SCHEDULE = "weekly-run-schedule";
 export const DIAGNOSTIC_QUEUE = "generate-diagnostic";
+export const REGISTRY_QUEUE = "registry-import";
+
+export interface RegistryJob { batchId: string; requestedBy: string | null }
 
 export interface DiagnosticJob { companyId: string; requestedBy: string }
 
@@ -35,6 +38,7 @@ export function getBoss(opts: { supervise?: boolean } = {}): Promise<PgBoss> {
     await boss.createQueue(ANALYZE_QUEUE, { policy: "short" });
     await boss.createQueue(WEEKLY_QUEUE, { policy: "short" });
     await boss.createQueue(DIAGNOSTIC_QUEUE, { policy: "short" });
+    await boss.createQueue(REGISTRY_QUEUE, { policy: "short" });
     return boss;
   })();
   return g.__radarBoss;
@@ -82,4 +86,10 @@ export async function syncWeeklySchedule(enabled: boolean, cron: string): Promis
 export async function enqueueDiagnostic(job: DiagnosticJob): Promise<string | null> {
   const boss = await getBoss();
   return boss.send(DIAGNOSTIC_QUEUE, job, { singletonKey: `diagnostic:${job.companyId}`, retryLimit: 0, expireInSeconds: 900 });
+}
+
+/** Encola la carga de un archivo del padrón. Una sola a la vez; no se reintenta sola (se reanuda a mano desde el punto de control). */
+export async function enqueueRegistryImport(job: RegistryJob): Promise<string | null> {
+  const boss = await getBoss();
+  return boss.send(REGISTRY_QUEUE, job, { singletonKey: "registry-import", retryLimit: 0, expireInSeconds: 24 * 3600 });
 }

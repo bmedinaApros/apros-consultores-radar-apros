@@ -5,7 +5,7 @@ import path from "node:path";
 import { syntheticLines } from "@/lib/registry/synthetic";
 
 /** Carpeta de importación temporal para una prueba. */
-export function useImportDir(): string {
+export function makeImportDir(): string {
   const dir = mkdtempSync(path.join(tmpdir(), "radar-import-"));
   process.env.REGISTRY_IMPORT_DIR = dir;
   return dir;

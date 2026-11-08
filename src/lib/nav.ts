@@ -16,11 +16,13 @@ export const NAV: readonly NavGroupDef[] = [
   {
     id: "prospectar", label: "Prospectar", icon: "prospect",
     items: [
+      { href: "/registry", label: "Buscar empresas", permission: "registry.read" },
       { href: "/companies", label: "Empresas", permission: "companies.read" },
       { href: "/weekly", label: "Lista semanal", permission: "weekly.read" },
       { href: "/inbox", label: "Bandeja de revisión", permission: "weekly.read" },
       { href: "/companies/import", label: "Importar CSV", permission: "companies.import" },
       { href: "/companies/duplicates", label: "Duplicados", roles: ["admin", "sales_lead"] },
+      { href: "/registry/imports", label: "Importaciones del padrón", permission: "registry.import" },
       { href: "/admin/sources", label: "Fuentes", permission: "sources.manage" },
     ],
   },
@@ -34,6 +36,7 @@ export const NAV_SETTINGS: NavGroupDef = {
   id: "configuracion", label: "Configuración", icon: "settings",
   items: [
     { href: "/admin/industries", label: "Rubros", permission: "catalog.manage" },
+    { href: "/admin/industry-rules", label: "Reglas de rubro", permission: "catalog.manage" },
     { href: "/admin/signals", label: "Señales por rubro", permission: "catalog.manage" },
     { href: "/admin/models", label: "Modelos de puntaje", permission: "catalog.manage" },
     { href: "/admin/services", label: "Servicios de APROS", permission: "catalog.manage" },
