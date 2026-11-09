@@ -10,6 +10,7 @@ import { canAnalyze } from "@/lib/analyzer/service";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { enqueueAnalysis } from "@/lib/jobs/queue";
 import { revalidateCompanyWebsite, setCompanyWebsite } from "@/lib/companies/web";
+import { addExternalSignal, removeExternalSignal } from "@/lib/companies/external-signals";
 
 const str = z.string().max(300).optional().default("");
 const createSchema = z.object({
@@ -142,5 +143,27 @@ export async function revalidateWebsiteAction(formData: FormData): Promise<void>
     if (!webLimiter.check(user.userId).allowed) throw new CompanyError("Demasiadas comprobaciones de sitios web; intenta más tarde");
     const r = await revalidateCompanyWebsite(toActor(user), id);
     return `Sitio comprobado: ${r.messages.join(" ")}`;
+  });
+}
+
+export async function addExternalSignalAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = z.string().uuid().parse(formData.get("id"));
+  return guarded(`/companies/${id}`, async () => {
+    await addExternalSignal(toActor(user), id, {
+      kind: formData.get("kind"), source: String(formData.get("source") ?? ""), detail: String(formData.get("detail") ?? ""),
+      url: String(formData.get("url") ?? ""), observedOn: String(formData.get("observedOn") ?? ""),
+    });
+    return "Señal registrada.";
+  });
+}
+
+export async function removeExternalSignalAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = z.string().uuid().parse(formData.get("id"));
+  const signalId = z.string().uuid().parse(formData.get("signalId"));
+  return guarded(`/companies/${id}`, async () => {
+    await removeExternalSignal(toActor(user), signalId);
+    return "Señal eliminada.";
   });
 }

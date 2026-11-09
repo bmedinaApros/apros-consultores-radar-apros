@@ -274,7 +274,7 @@ Una rama `feat/v2-<tema>` desde `main` y un PR en borrador por fase. Al final de
 | **V2-3a** | `feat/v2-sin-ia-y-web` | Diagnóstico sin IA (plantillas y reglas) e ingreso rápido del sitio web con validación. **Hecha.** |
 | ~~V2-3b~~ | — | OSM, página de contacto, PageSpeed y firmas de tecnologías: **fuera del proyecto por ahora** (2026-11-09). |
 | ~~V2-3~~ | `feat/v2-enriquecimiento` | OSM, página de contacto, auditoría web ampliada, PageSpeed, detector de tecnologías (según 10.6), diagnóstico `rules` | V2-2; 10.4 | Parcial |
-| **V2-4** | `feat/v2-senales` | Oportunidades públicas (SEACE/OECE, según 10.3), Get on Board, Indecopi asistido, enlace de Meta | Términos de cada una | Parcial |
+| **V2-4** | `feat/v2-senales-externas` | **Hecho en modo asistido:** botones de búsqueda (Computrabajo, Bumeran, Laborum, Meta, Indecopi) y registro manual de señales (D-75). SEACE/OECE y Get on Board quedan pendientes de verificar términos. | Términos de cada una | Parcial |
 | **V2-5** | `feat/v2-directorios` | Solo directorios y portales cuya revisión apruebes: asistidos o automáticos | Tu aprobación por fuente | Parcial |
 | **V2-6** | `feat/v2-scoring` | Nuevas señales, vigencia, pesos por rubro, nueva versión de modelos | V2-3 y V2-4 | Sí |
 

@@ -1,5 +1,6 @@
 import { pool } from "../db";
 import { COMMON_SIGNALS } from "../analyzer/observations";
+import { listExternalSignals, SIGNAL_LABELS } from "../companies/external-signals";
 import { getCompany, listCompanies } from "../companies/service";
 import { parseQuickQuery } from "../registry/quick";
 import { getRegistryCompany, registryStats, searchRegistry } from "../registry/service";
@@ -69,10 +70,12 @@ export async function verEmpresa(id: string) {
   const obs = run ? (await pool().query<{ signal_code: string; status: string; evidence_excerpt: string | null; evidence_url: string | null }>(
     `SELECT signal_code, status, evidence_excerpt, evidence_url FROM signal_observations WHERE analysis_run_id = $1 ORDER BY id`, [run.id])).rows : [];
   const dx = (await pool().query<{ id: string; status: string; stale: boolean }>(`SELECT id, status, stale FROM diagnostics WHERE company_id = $1`, [id])).rows[0];
+  const ext = await listExternalSignals(id);
   return {
     aviso: DATA_NOTICE,
     empresa: { id: co.id, razon_social: co.legal_name, nombre_comercial: co.trade_name, sitio_web: co.domain, ruc: co.ruc, rubro: co.industry_name, ciudad: co.city, etapa: co.stage, no_contactar: co.blocked },
     analisis_del_sitio: run ? { fecha: run.finished_at, paginas_leidas: run.pages_fetched, senales: obs.map((o) => ({ senal: COMMON_SIGNALS.find((s) => s.code === o.signal_code)?.name ?? o.signal_code, resultado: o.status === "observed" ? "detectado" : o.status === "not_detected" ? "no detectado en el HTML (no prueba que no exista)" : "no se pudo verificar", extracto: clip(o.evidence_excerpt, 200), url: o.evidence_url })) } : null,
+    senales_externas_manuales: ext.map((x) => ({ tipo: SIGNAL_LABELS[x.kind], fuente: x.source, fecha: x.observed_on, detalle: x.detail, enlace: x.url })),
     diagnostico: dx ? { id: dx.id, estado: dx.status, desactualizado: dx.stale } : null,
   };
 }

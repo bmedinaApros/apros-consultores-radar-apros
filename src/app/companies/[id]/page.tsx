@@ -9,7 +9,7 @@ import { companySources, getCompany, listIndustries } from "@/lib/companies/serv
 import { findDoNotContact } from "@/lib/companies/exclusions";
 import { listUsers } from "@/lib/users";
 import { CLASSIFICATION_LABELS, STAGE_LABELS } from "@/lib/labels";
-import { adjustmentAction, analyzeAction, manualCriteriaAction, recomputeScoreAction, revalidateWebsiteAction, setWebsiteAction, updateCompanyAction } from "../actions";
+import { addExternalSignalAction, adjustmentAction, analyzeAction, manualCriteriaAction, recomputeScoreAction, removeExternalSignalAction, revalidateWebsiteAction, setWebsiteAction, updateCompanyAction } from "../actions";
 import { pool } from "@/lib/db";
 import { ScorePanel } from "@/components/score-panel";
 import { latestAdjustment, latestManual, latestScore, reproduceScore } from "@/lib/scoring/service";
@@ -20,6 +20,7 @@ import { can } from "@/lib/rbac";
 import { SignalsPanel } from "@/components/signals-panel";
 import { generateOneAction } from "@/app/diagnostics/actions";
 import { latestWebValidation } from "@/lib/companies/web";
+import { JOB_PORTALS, listExternalSignals, searchLinks, SIGNAL_KINDS, SIGNAL_LABELS } from "@/lib/companies/external-signals";
 import { canAnalyze, latestCompletedRunId, listIndustrySignals, listRuns, observationsForRun, signalChanges } from "@/lib/analyzer/service";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,8 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
   ]);
   const runId = await latestCompletedRunId(id);
   const webCheck = await latestWebValidation(id);
+  const extSignals = await listExternalSignals(id);
+  const links = searchLinks(company.legal_name);
   const diag = (await pool().query<{ id: string }>(`SELECT id FROM diagnostics WHERE company_id = $1`, [id])).rows[0];
   const [runs, rows, changes, indSignals] = await Promise.all([listRuns(id, 5), runId ? observationsForRun(runId) : Promise.resolve([]), signalChanges(id), listIndustrySignals()]);
   const industryNames = Object.fromEntries(indSignals.map((x) => [`industry.${x.slug}`, x.name]));
@@ -158,6 +161,37 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
             <div><label htmlFor="reason">Motivo *</label><input id="reason" name="reason" required maxLength={300} defaultValue={adjustment?.reason ?? ""} /></div>
             <button className="btn btn-primary btn-small" type="submit">Guardar ajuste</button>
             </fieldset>
+          </form>
+        )}
+      </section>
+      <section className="card stack" aria-labelledby="externas">
+        <h2 id="externas">Señales externas (registro manual)</h2>
+        <p className="muted">Consulta estas fuentes por tu cuenta, en tu navegador y bajo los términos de cada sitio (se abren en otra pestaña). Radar no las lee ni las guarda sola: lo que registres abajo queda con su fecha, enlace y quién lo anotó.</p>
+        <ul className="row">{links.map((l) => <li key={l.label}><a className="btn btn-secondary btn-small" href={l.href} target="_blank" rel="noopener noreferrer">{l.label}<span className="muted"> · {l.note}</span></a></li>)}</ul>
+        {extSignals.length === 0 ? <p className="muted">Todavía no hay señales registradas.</p> : (
+          <ul>{extSignals.map((x) => (
+            <li key={x.id}>
+              <strong>{SIGNAL_LABELS[x.kind]}</strong>{x.source ? ` · ${x.source}` : ""} · {x.observed_on}: {x.detail}
+              {x.url && <> · <a href={x.url} target="_blank" rel="noopener noreferrer">enlace</a></>}
+              <span className="muted"> · registrada por {x.created_by_email ?? "—"}</span>
+              {editable && <form action={removeExternalSignalAction} className="row"><input type="hidden" name="id" value={company.id} /><input type="hidden" name="signalId" value={x.id} /><button className="btn btn-secondary btn-small" type="submit">Quitar</button></form>}
+            </li>
+          ))}</ul>
+        )}
+        {editable && (
+          <form action={addExternalSignalAction} className="stack" aria-labelledby="ext-title">
+            <h3 id="ext-title">Registrar una señal</h3>
+            <input type="hidden" name="id" value={company.id} />
+            <div className="row">
+              <div><label htmlFor="ext-kind">Tipo</label><select id="ext-kind" name="kind" defaultValue="aviso_empleo">{SIGNAL_KINDS.map((k) => <option key={k} value={k}>{SIGNAL_LABELS[k]}</option>)}</select></div>
+              <div><label htmlFor="ext-source">Fuente (opcional)</label><input id="ext-source" name="source" list="ext-sources" maxLength={60} placeholder="Computrabajo" /><datalist id="ext-sources">{JOB_PORTALS.map((p) => <option key={p} value={p} />)}</datalist></div>
+              <div><label htmlFor="ext-date">Fecha en que lo viste</label><input id="ext-date" name="observedOn" type="date" required /></div>
+            </div>
+            <label htmlFor="ext-detail">Qué observaste</label>
+            <textarea id="ext-detail" name="detail" rows={2} maxLength={500} required placeholder="Ej.: busca «Community manager» y «Analista de marketing digital»" />
+            <label htmlFor="ext-url">Enlace (opcional)</label>
+            <input id="ext-url" name="url" type="url" maxLength={500} placeholder="https://…" />
+            <div><button className="btn btn-primary" type="submit">Registrar señal</button></div>
           </form>
         )}
       </section>
