@@ -195,3 +195,33 @@ describe("promoción a empresas de trabajo", () => {
     expect((await pool().query(`SELECT count(*)::int AS n FROM audit_log WHERE action = 'registry.promoted'`)).rows[0].n).toBe(4);
   });
 });
+
+describe("recalcular rubros sin recargar el archivo", () => {
+  it("aplica las reglas actuales a todo el padrón, solo cambia lo necesario y es repetible", async () => {
+    const { recomputeSuggestions } = await import("@/lib/registry/rubro");
+    const admin = await mkActor("admin");
+    const dir = makeImportDir();
+    writeSynthetic(dir, "padron.txt", "ruc", 3000, 1);
+    // se carga SIN reglas: ninguna fila tiene rubro sugerido
+    await runBatch((await createBatchInternal({ fileName: "padron.txt" }, admin.id)).id, { chunkLines: 500 });
+    expect(Number((await pool().query("SELECT count(*) AS n FROM registry_companies WHERE suggested_industry_id IS NOT NULL")).rows[0].n)).toBe(0);
+    const total = Number((await pool().query("SELECT count(*) AS n FROM registry_companies")).rows[0].n);
+
+    await seedExampleKeywords(admin);
+    const first = await recomputeSuggestions(admin);
+    expect(first.checked).toBe(total);
+    expect(first.changed).toBeGreaterThan(100);
+    const salud = (await pool().query<{ id: string }>(`SELECT id FROM industries WHERE slug = 'salud'`)).rows[0]!.id;
+    const bad = await pool().query(`SELECT count(*)::int AS n FROM registry_companies WHERE suggested_industry_id = $1 AND normalized_name NOT LIKE '%clinica%' AND normalized_name NOT LIKE '%salud%'`, [salud]);
+    expect(bad.rows[0].n).toBe(0);
+    // repetir no cambia nada
+    expect((await recomputeSuggestions(admin)).changed).toBe(0);
+    // quitar las reglas de salud retira esas sugerencias
+    await pool().query(`DELETE FROM industry_keywords WHERE industry_id = $1`, [salud]);
+    const third = await recomputeSuggestions(admin);
+    expect(third.changed).toBeGreaterThan(0);
+    expect(Number((await pool().query(`SELECT count(*) AS n FROM registry_companies WHERE suggested_industry_id = $1`, [salud])).rows[0].n)).toBe(0);
+    // solo administración
+    await expect(recomputeSuggestions(await mkActor("consultant"))).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});

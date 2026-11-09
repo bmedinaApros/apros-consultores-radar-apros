@@ -19,7 +19,8 @@
     "audit:deps": "npm audit --audit-level=high",
     "worker": "tsx --env-file=.env scripts/worker.ts",
     "user:create": "tsx --env-file=.env scripts/create-user.ts",
-    "registry:import": "tsx --env-file=.env scripts/registry-import.ts"
+    "registry:import": "tsx --env-file=.env scripts/registry-import.ts",
+    "registry:rubros": "tsx --env-file=.env scripts/registry-rubros.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

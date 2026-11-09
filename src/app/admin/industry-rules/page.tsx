@@ -4,7 +4,7 @@ import { Flash } from "@/components/flash";
 import { guarded, toActor } from "@/lib/actor";
 import { listIndustries } from "@/lib/companies/service";
 import { requirePermissionPage } from "@/lib/current-user";
-import { addKeyword, listKeywords, removeKeyword, seedExampleKeywords } from "@/lib/registry/rubro";
+import { addKeyword, listKeywords, recomputeSuggestions, removeKeyword, seedExampleKeywords } from "@/lib/registry/rubro";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,14 @@ async function removeAction(formData: FormData): Promise<void> {
   const user = await requirePermissionPage("catalog.manage");
   const id = z.string().uuid().parse(formData.get("id"));
   return guarded("/admin/industry-rules", async () => { await removeKeyword(toActor(user), id); return "Palabra eliminada."; });
+}
+async function recomputeAction(): Promise<void> {
+  "use server";
+  const user = await requirePermissionPage("catalog.manage");
+  return guarded("/admin/industry-rules", async () => {
+    const r = await recomputeSuggestions(toActor(user));
+    return `Rubros recalculados: ${r.checked.toLocaleString("es-PE")} empresas revisadas, ${r.changed.toLocaleString("es-PE")} con sugerencia nueva o distinta.`;
+  });
 }
 async function seedAction(): Promise<void> {
   "use server";
@@ -37,8 +45,13 @@ export default async function IndustryRulesPage({ searchParams }: { searchParams
       <h1>Reglas de rubro</h1>
       <p className="muted">
         El padrón de SUNAT no trae el rubro. Radar lo <strong>sugiere</strong> si la razón social contiene alguna de estas palabras (palabras completas, sin tildes). Gana el rubro con más palabras;
-        con empate no se sugiere nada. Es solo una sugerencia: la persona la confirma al promover la empresa. Los cambios se aplican en la siguiente carga del padrón.
+        con empate no se sugiere nada. Es solo una sugerencia: la persona la confirma al promover la empresa. Después de cambiar palabras, pulsa «Recalcular rubros del padrón» para aplicarlas
+        a todo lo ya cargado (con cientos de miles de empresas puede tardar un minuto; no hace falta volver a cargar el archivo).
       </p>
+      <form action={recomputeAction} className="card row">
+        <button className="btn btn-primary" type="submit">Recalcular rubros del padrón</button>
+        <span className="muted">Revisa todas las empresas del padrón con las palabras de abajo.</span>
+      </form>
       <Flash ok={q.ok} error={q.error} />
       <form action={addAction} className="card row">
         <div><label htmlFor="industryId">Rubro</label><select id="industryId" name="industryId" required>{industries.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select></div>

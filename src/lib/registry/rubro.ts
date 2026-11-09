@@ -85,3 +85,33 @@ export async function seedExampleKeywords(actor: ActorInfo): Promise<number> {
   await audit({ actorId: actor.id, actorEmail: actor.email, action: "industry_keyword.seeded", entityType: "industry_keyword", entityId: "ejemplos", metadata: { added } });
   return added;
 }
+
+/**
+ * Recalcula el rubro sugerido de TODO el padrón con las reglas actuales, sin volver a leer el archivo. Recorre por RUC en
+ * bloques y solo escribe las filas que cambian. Devuelve cuántas se revisaron y cuántas cambiaron.
+ */
+export async function recomputeSuggestions(actor: ActorInfo | null, onProgress?: (p: { checked: number; changed: number }) => void): Promise<{ checked: number; changed: number }> {
+  if (actor) requirePermission(actor, "catalog.manage");
+  const rules = await loadRubroRules();
+  let after = "";
+  let checked = 0, changed = 0;
+  for (;;) {
+    const rows = (await pool().query<{ ruc: string; normalized_name: string; suggested_industry_id: string | null }>(
+      `SELECT ruc, normalized_name, suggested_industry_id FROM registry_companies WHERE ruc > $1 ORDER BY ruc LIMIT 5000`, [after])).rows;
+    if (rows.length === 0) break;
+    const upRuc: string[] = [], upInd: (string | null)[] = [];
+    for (const r of rows) {
+      const s = suggestIndustry(r.normalized_name, rules);
+      if (s !== r.suggested_industry_id) { upRuc.push(r.ruc); upInd.push(s); }
+    }
+    if (upRuc.length) {
+      await pool().query(
+        `UPDATE registry_companies r SET suggested_industry_id = t.ind FROM unnest($1::text[], $2::uuid[]) AS t(ruc, ind) WHERE r.ruc = t.ruc`, [upRuc, upInd]);
+    }
+    checked += rows.length; changed += upRuc.length;
+    after = rows[rows.length - 1]!.ruc;
+    onProgress?.({ checked, changed });
+  }
+  await audit({ actorId: actor?.id ?? null, actorEmail: actor?.email ?? "cli", action: "registry.suggestions_recomputed", entityType: "registry", entityId: "padron", metadata: { checked, changed } });
+  return { checked, changed };
+}
