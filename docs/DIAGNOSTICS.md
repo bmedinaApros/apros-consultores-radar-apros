@@ -16,11 +16,13 @@ Un diagnóstico por empresa: 1–3 oportunidades con la cadena **Observación �
 - Una afirmación sin evidencia citada, que afirma algo a partir de una ausencia, con cifras sin respaldo, con lenguaje crítico/prometedor o con enlaces ajenos queda **marcada**; con marcas bloqueantes no se envía a revisión ni se aprueba.
 - Un sitio ilegible (sin ≥3 señales verificables) **no genera** diagnóstico: fallar al leer no es un hallazgo.
 - **Desactualizado:** si el siguiente análisis cambia una señal citada, el diagnóstico no se aprueba ni se descarga hasta regenerarlo.
-- La descarga (`/api/diagnostics/[id]/export?format=pdf|pptx`) comprueba en cada llamada: sesión, permiso, visibilidad, aprobado, versión aprobada = vigente, sin marcas, evidencia al día. Cada descarga se audita con hash.
+- La descarga (`/api/diagnostics/[id]/export?format=informe|pdf|pptx`) comprueba en cada llamada: sesión, permiso, visibilidad, aprobado, versión aprobada = vigente, sin marcas, evidencia al día. Cada descarga se audita con hash.
 - Empresas en no contactar o clientes activos: no se generan ni se aprueban.
 
 ## Entregables
-PDF de una página A4 (Questrial/Roboto, logo APROS; si el texto no cabe se reduce hasta 70 % y, si aún no cabe, se rechaza) y PPTX (portada, observaciones, una lámina por oportunidad, propuesta/siguiente paso, cierre) desde los mismos datos. Los PPTX usan Questrial/Roboto: si el equipo que lo abre no las tiene, PowerPoint sustituye la fuente.
+**Informe (PDF, varias páginas A4, `format=informe`)**: portada con marca, resumen ejecutivo, contexto y alcance, una página por oportunidad (observación → oportunidad → impacto → propuesta → entregable → KPI) con su evidencia, anexo con todas las señales revisadas (con la salvedad «no detectado ≠ no existe»), metodología y notas; encabezado/pie con «X de N». Mismas reglas de acceso que el resto de exportaciones.
+
+Resumen en PDF de una página A4 (Questrial/Roboto, logo APROS; si el texto no cabe se reduce hasta 70 % y, si aún no cabe, se rechaza) y PPTX (portada, observaciones, una lámina por oportunidad, propuesta/siguiente paso, cierre) desde los mismos datos. Los PPTX usan Questrial/Roboto: si el equipo que lo abre no las tiene, PowerPoint sustituye la fuente.
 
 ## Piloto de 30
 En una lista semanal, «Generar diagnósticos de las aprobadas» encola hasta 30 empresas aprobadas sin diagnóstico; se generan de una en una respetando el presupuesto diario.

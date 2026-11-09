@@ -12,7 +12,7 @@ import { approveDiagnostic, editDiagnostic, getDiagnosticDetail, rejectDiagnosti
 
 export const dynamic = "force-dynamic";
 const fmt = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Lima" });
-const EVENT_LABEL: Record<string, string> = { created: "Creado", generated: "Generado", edited: "Editado", submitted: "Enviado a revisión", approved: "Aprobado", rejected: "Rechazado", exported_pdf: "PDF descargado", exported_pptx: "PPTX descargado" };
+const EVENT_LABEL: Record<string, string> = { created: "Creado", generated: "Generado", edited: "Editado", submitted: "Enviado a revisión", approved: "Aprobado", rejected: "Rechazado", exported_pdf: "PDF descargado", exported_pptx: "PPTX descargado", exported_informe: "Informe descargado" };
 
 const idSchema = z.string().uuid();
 
@@ -109,7 +109,7 @@ export default async function DiagnosticPage({ params, searchParams }: { params:
         <div className="row">
           {writer && g.status === "draft" && <form action={transition}><input type="hidden" name="id" value={g.id} /><button className="btn btn-primary" name="op" value="submit" type="submit">Enviar a revisión</button></form>}
           {approver && g.status === "in_review" && <form action={transition}><input type="hidden" name="id" value={g.id} /><button className="btn btn-primary" name="op" value="approve" type="submit">Aprobar</button></form>}
-          {exporter && <><a className="btn btn-secondary" href={`/api/diagnostics/${g.id}/export?format=pdf`}>Descargar PDF (1 página)</a><a className="btn btn-secondary" href={`/api/diagnostics/${g.id}/export?format=pptx`}>Descargar PPTX</a></>}
+          {exporter && <><a className="btn btn-primary" href={`/api/diagnostics/${g.id}/export?format=informe`}>Descargar informe (PDF)</a><a className="btn btn-secondary" href={`/api/diagnostics/${g.id}/export?format=pdf`}>Resumen de 1 página (PDF)</a><a className="btn btn-secondary" href={`/api/diagnostics/${g.id}/export?format=pptx`}>Descargar PPTX</a></>}
         </div>
         {approver && g.status === "in_review" && (
           <form action={transition} className="row"><input type="hidden" name="id" value={g.id} /><input type="hidden" name="op" value="reject" />

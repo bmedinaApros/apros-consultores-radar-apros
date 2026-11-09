@@ -387,6 +387,8 @@ export async function getDiagnosticDetail(actor: { id: string; role: Role }, id:
 export interface Exportable {
   diagnosticId: string; versionId: string; version: number; content: DiagnosticContent; companyName: string; companyDomain: string; industryName: string | null;
   approvedAt: Date; evidence: Map<string, EvidenceObs>; evidenceDate: Date | null;
+  /** Todas las señales revisadas en el análisis que respalda la versión (para el anexo del informe). */
+  allObservations: EvidenceObs[]; pagesFetched: number | null;
 }
 
 /**
@@ -407,14 +409,18 @@ export async function loadExportable(actor: { id: string; role: Role }, diagnost
     throw new DiagnosticError(`El diagnóstico está desactualizado (${stale.reason}): regéneralo y vuelve a aprobarlo`);
   }
   if (d.stale) throw new DiagnosticError(`El diagnóstico está desactualizado (${d.stale_reason ?? "evidencia cambiada"})`);
-  const run = v.evidence_run_id ? await pool().query<{ finished_at: Date }>(`SELECT finished_at FROM analysis_runs WHERE id = $1`, [v.evidence_run_id]) : null;
+  const run = v.evidence_run_id ? await pool().query<{ finished_at: Date; pages_fetched: number }>(`SELECT finished_at, pages_fetched FROM analysis_runs WHERE id = $1`, [v.evidence_run_id]) : null;
+  const all = v.evidence_run_id
+    ? (await pool().query<EvidenceObs>(`SELECT id::text AS id, signal_code, status, kind, confidence, value, evidence_excerpt, evidence_url FROM signal_observations WHERE analysis_run_id = $1 ORDER BY id`, [v.evidence_run_id])).rows
+    : [];
   return {
     diagnosticId, versionId: v.id, version: v.version, content: diagnosticSchema.parse(v.content), companyName: d.company_name, companyDomain: d.company_domain ?? "",
     industryName: d.industry_name, approvedAt: d.approved_at, evidence: detail.evidence, evidenceDate: run?.rows[0]?.finished_at ?? null,
+    allObservations: all, pagesFetched: run?.rows[0]?.pages_fetched ?? null,
   };
 }
 
-export async function recordExport(actor: ActorInfo, x: { diagnosticId: string; versionId: string; format: "pdf" | "pptx"; bytes: Buffer }): Promise<void> {
+export async function recordExport(actor: ActorInfo, x: { diagnosticId: string; versionId: string; format: "pdf" | "pptx" | "informe"; bytes: Buffer }): Promise<void> {
   await withTransaction(async (c) => {
     await c.query(`INSERT INTO diagnostic_exports (diagnostic_id, version_id, format, sha256, bytes, exported_by) VALUES ($1,$2,$3,$4,$5,$6)`, [x.diagnosticId, x.versionId, x.format, createHash("sha256").update(x.bytes).digest("hex"), x.bytes.length, actor.id]);
     await event(c, x.diagnosticId, x.versionId, `exported_${x.format}`, actor.id);
