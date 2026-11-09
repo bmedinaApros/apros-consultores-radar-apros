@@ -1,34 +1,31 @@
 import { can, type Permission, type Role } from "./rbac";
 
 /** Íconos disponibles (un solo set: lucide, trazo uniforme). La clave es lo que viaja al cliente; el componente la traduce. */
-export type IconKey = "home" | "prospect" | "analyze" | "settings";
+export type IconKey = "home" | "prospect" | "analyze" | "settings" | "upload" | "more";
 
 export interface NavItemDef { href: string; label: string; permission?: Permission; roles?: readonly Role[] }
-export interface NavGroupDef { id: string; label: string; icon: IconKey; /** Si no tiene subopciones, el grupo es un enlace. */ href?: string; items: NavItemDef[]; permission?: Permission }
+export interface NavGroupDef { id: string; label: string; icon: IconKey; /** Si no tiene subopciones, el grupo es un enlace. */ href?: string; items: NavItemDef[]; permission?: Permission; roles?: readonly Role[] }
 
 /**
- * Estructura del menú (plan v2.1, sección 7): tres grupos de trabajo más Configuración, que se muestra aparte y abajo.
+ * Estructura del menú: Buscar, Cargar padrón y «Más» (lo demás), más Configuración aparte y abajo.
  * Una pantalla que no existe no aparece. Cada rol ve solo lo que puede usar; la autorización real se vuelve a
  * comprobar en el servidor en cada página y acción: ocultar una entrada no es un control.
  */
 export const NAV: readonly NavGroupDef[] = [
-  { id: "inicio", label: "Inicio", icon: "home", href: "/", items: [] },
+  { id: "buscar", label: "Buscar", icon: "prospect", href: "/registry", items: [] },
+  { id: "cargar", label: "Cargar padrón", icon: "upload", href: "/registry/imports", items: [], permission: "registry.import" },
   {
-    id: "prospectar", label: "Prospectar", icon: "prospect",
+    // Todo lo demás sigue disponible, pero fuera del camino: la tarea principal es cargar el padrón y buscar en él.
+    id: "mas", label: "Más", icon: "more",
     items: [
-      { href: "/registry", label: "Buscar empresas", permission: "registry.read" },
-      { href: "/companies", label: "Empresas", permission: "companies.read" },
+      { href: "/companies", label: "Empresas de la base", permission: "companies.read" },
+      { href: "/diagnostics", label: "Diagnósticos", permission: "companies.read" },
       { href: "/weekly", label: "Lista semanal", permission: "weekly.read" },
       { href: "/inbox", label: "Bandeja de revisión", permission: "weekly.read" },
       { href: "/companies/import", label: "Importar CSV", permission: "companies.import" },
       { href: "/companies/duplicates", label: "Duplicados", roles: ["admin", "sales_lead"] },
-      { href: "/registry/imports", label: "Importaciones del padrón", permission: "registry.import" },
       { href: "/admin/sources", label: "Fuentes", permission: "sources.manage" },
     ],
-  },
-  {
-    id: "analizar", label: "Analizar", icon: "analyze",
-    items: [{ href: "/diagnostics", label: "Diagnósticos", permission: "companies.read" }],
   },
 ];
 
@@ -57,7 +54,7 @@ const allowed = (role: Role, x: { permission?: Permission; roles?: readonly Role
 /** Grupos que el rol puede ver. Un grupo sin entradas permitidas no se muestra; Configuración va siempre al final. */
 export function visibleNav(role: Role): { main: VisibleGroup[]; settings: VisibleGroup | null } {
   const shape = (g: NavGroupDef): VisibleGroup => ({ id: g.id, label: g.label, icon: g.icon, href: g.href, items: g.items.filter((i) => allowed(role, i)).map(({ href, label }) => ({ href, label })) });
-  const main = NAV.map(shape).filter((g) => g.href || g.items.length > 0);
+  const main = NAV.filter((g) => allowed(role, g)).map(shape).filter((g) => g.href || g.items.length > 0);
   const settings = shape(NAV_SETTINGS);
   return { main, settings: settings.items.length > 0 ? settings : null };
 }

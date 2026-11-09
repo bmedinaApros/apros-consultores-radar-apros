@@ -10,6 +10,8 @@ const schema = z.object({
   GOOGLE_CLIENT_ID: z.string().default(""),
   GOOGLE_CLIENT_SECRET: z.string().default(""),
   DEV_LOGIN_ENABLED: z.enum(["true", "false"]).default("false"),
+  // Modo local: entra sin usuario ni clave como el primer administrador activo. Solo para uso personal en el propio equipo.
+  LOCAL_MODE: z.enum(["true", "false"]).default("false"),
   // Analizador web
   CRAWLER_USER_AGENT: z.string().default("RadarAPROS/1.0 (+https://apros.pe; analisis comercial B2B)"),
   CRAWLER_ALLOWED_PORTS: z.string().default("80,443"),
@@ -35,6 +37,9 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
   const env = schema.parse(source);
   if (env.NODE_ENV === "production" && env.DEV_LOGIN_ENABLED === "true") {
     throw new Error("DEV_LOGIN_ENABLED=true no está permitido en producción");
+  }
+  if (env.NODE_ENV === "production" && env.LOCAL_MODE === "true") {
+    throw new Error("LOCAL_MODE=true no está permitido en producción");
   }
   return env;
 }

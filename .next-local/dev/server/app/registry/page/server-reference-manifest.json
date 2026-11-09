@@ -1,0 +1,65 @@
+{
+  "node": {
+    "4050ffc7c26b4cfc87933f2d3432da15ce61de6b6a": {
+      "workers": {
+        "app/registry/page": {
+          "moduleId": "[project]/.next-internal/server/app/registry/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/registry/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/actions/nav.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "exportedName": "startImportAction",
+      "filename": "src/app/registry/actions.ts"
+    },
+    "409c2f230c6319f6f5256bf5e8c760c8fd6ab98614": {
+      "workers": {
+        "app/registry/page": {
+          "moduleId": "[project]/.next-internal/server/app/registry/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/registry/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/actions/nav.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "exportedName": "cancelImportAction",
+      "filename": "src/app/registry/actions.ts"
+    },
+    "409fdb8fe9ba8a87599e5b65b961df63704533c968": {
+      "workers": {
+        "app/registry/page": {
+          "moduleId": "[project]/.next-internal/server/app/registry/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/registry/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/actions/nav.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "exportedName": "linkAction",
+      "filename": "src/app/registry/actions.ts"
+    },
+    "40c48d8340efcfe77337d5dff6cc2d860f9b16cf92": {
+      "workers": {
+        "app/registry/page": {
+          "moduleId": "[project]/.next-internal/server/app/registry/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/registry/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/actions/nav.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "exportedName": "promoteAction",
+      "filename": "src/app/registry/actions.ts"
+    },
+    "40e4a8e88a604c693b5e8334dee9050ad5a558efc5": {
+      "workers": {
+        "app/registry/page": {
+          "moduleId": "[project]/.next-internal/server/app/registry/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/registry/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/actions/nav.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "exportedName": "resumeImportAction",
+      "filename": "src/app/registry/actions.ts"
+    },
+    "408fcf24fa4953c5b13b3fc77f5aa5d69f4be9a29d": {
+      "workers": {
+        "app/registry/page": {
+          "moduleId": "[project]/.next-internal/server/app/registry/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/registry/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/actions/nav.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "exportedName": "setNavCollapsed",
+      "filename": "src/app/actions/nav.ts"
+    }
+  },
+  "edge": {}
+}

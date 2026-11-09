@@ -5,8 +5,8 @@ import { requirePermissionPage } from "@/lib/current-user";
 import { can } from "@/lib/rbac";
 import { pool } from "@/lib/db";
 import { listIndustries } from "@/lib/companies/service";
-import { COUNT_CAP, REGISTRY_PAGE, filtersSchema, registryStats, searchRegistry } from "@/lib/registry/service";
-import { parseQuickQuery } from "@/lib/registry/quick";
+import { COUNT_CAP, REGISTRY_PAGE, registryStats, searchRegistry } from "@/lib/registry/service";
+import { registryParams } from "@/lib/registry/params";
 import { promoteAction } from "./actions";
 import { SelectAll } from "./select-all";
 
@@ -15,6 +15,7 @@ const fmt = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeZone: "A
 const nf = new Intl.NumberFormat("es-PE");
 
 const flag = (v: string | undefined) => (v === "1" || v === "on" ? true : undefined);
+const EXPORT_NOTE = "hasta 5.000 filas";
 
 export default async function RegistryPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requirePermissionPage("registry.read");
@@ -23,13 +24,8 @@ export default async function RegistryPage({ searchParams }: { searchParams: Pro
     pool().query<{ code: string; department: string }>(`SELECT code, department FROM ubigeo WHERE length(code) = 2 ORDER BY department`),
     listIndustries(), registryStats(),
   ]);
-  // Una sola caja: la frase se interpreta (RUC, departamento, palabras del nombre); lo avanzado, si se usa, manda sobre ella.
-  const quick = parseQuickQuery(q.s ?? "", depts.rows);
-  const parsed = filtersSchema.safeParse({
-    q: q.q || quick.q || undefined, status: q.status || undefined, condition: q.condition || undefined, person: q.person || undefined,
-    ubigeo: q.ubigeo || q.dept || quick.ubigeo || undefined, industry: q.industry || undefined, notPromoted: flag(q.notPromoted) ?? false,
-    includeMissing: flag(q.includeMissing) ?? false, after: q.after || undefined,
-  });
+  const { filters, quick } = registryParams(q, depts.rows);
+  const parsed = { success: filters !== null, data: filters as NonNullable<typeof filters> };
   const result = parsed.success ? await searchRegistry(parsed.data) : null;
   const mayPromote = can(user.role, "registry.promote");
   const keep = new URLSearchParams(Object.entries(q).filter(([k, v]) => v && k !== "after" && k !== "ok" && k !== "error") as [string, string][]);
@@ -39,22 +35,21 @@ export default async function RegistryPage({ searchParams }: { searchParams: Pro
     <AppShell user={user} current="/registry">
       <h1>Buscar empresas</h1>
       <p className="muted">
-        Padrón de SUNAT cargado: {nf.format(stats.companies)} empresas
-        {stats.lastBatch?.finished_at ? ` · última carga el ${fmt.format(stats.lastBatch.finished_at)}${stats.lastBatch.source_note ? ` (${stats.lastBatch.source_note})` : ""}` : " · aún no hay una carga completa"}.
-        Estar en el padrón no convierte a una empresa en candidata: tú eliges cuáles pasan a la base de trabajo.
+        {nf.format(stats.companies)} empresas en el padrón de SUNAT
+        {stats.lastBatch?.finished_at ? ` · cargado el ${fmt.format(stats.lastBatch.finished_at)}${stats.lastBatch.source_note ? ` (${stats.lastBatch.source_note})` : ""}` : " · aún no hay una carga completa"}.
       </p>
       <Flash ok={q.ok} error={q.error ?? (parsed.success ? undefined : "Revisa los filtros: alguno no tiene un formato válido.")} />
       <form method="get" className="card stack" role="search" aria-label="Buscar en el padrón">
         <div className="row">
           <div style={{ flex: "1 1 320px" }}>
-            <label htmlFor="s">¿Qué empresas buscas?</label>
-            <input id="s" name="s" defaultValue={q.s} maxLength={100} style={{ width: "100%" }} autoFocus placeholder="Ej.: inmobiliarias en Lima · clínicas Arequipa · 20100193117" />
+            <label htmlFor="s">Palabra clave</label>
+            <input id="s" name="s" defaultValue={q.s} maxLength={100} style={{ width: "100%" }} autoFocus placeholder="Ej.: inmobiliaria · clínicas Arequipa · transporte en Lima · 20100193117" />
           </div>
           <button className="btn btn-primary" type="submit">Buscar</button>
         </div>
         {q.s && quick.understood.length > 0 && <p className="muted" role="status">Lo que entendí: {quick.understood.join(" · ")}. Jurídicas, activas y habidas.</p>}
         <details>
-          <summary>Más filtros (opcionales)</summary>
+          <summary>Filtros avanzados</summary>
           <div className="row">
             <div><label htmlFor="q">Razón social o RUC (exacto)</label><input id="q" name="q" defaultValue={q.q} maxLength={100} /></div>
             <div><label htmlFor="dept">Departamento</label>
@@ -77,13 +72,15 @@ export default async function RegistryPage({ searchParams }: { searchParams: Pro
       {result && (result.rows.length === 0 ? (
         <div className="card empty">
           <h2>{stats.companies === 0 ? "Aún no hay padrón cargado" : "No hay empresas con estos filtros"}</h2>
-          <p>{stats.companies === 0 ? "Un administrador debe cargar el archivo del padrón en Prospectar → Importaciones del padrón." : "Prueba con menos filtros."}</p>
+          <p>{stats.companies === 0 ? "Ve a «Cargar padrón» en el menú para cargar el archivo." : "Prueba con menos filtros."}</p>
         </div>
       ) : (
         <form id="promover" action={promoteAction} className="stack">
           <input type="hidden" name="back" value={back} />
-          <p className="muted" role="status">
-            {result.totalCapped ? `Más de ${nf.format(COUNT_CAP)}` : nf.format(result.total)} coincidencias · {REGISTRY_PAGE} por página, ordenadas por RUC.
+          <p className="row" role="status">
+            <strong>{result.totalCapped ? `Más de ${nf.format(COUNT_CAP)}` : nf.format(result.total)} coincidencias</strong>
+            <span className="muted">{REGISTRY_PAGE} por página, ordenadas por RUC</span>
+            <a className="btn btn-secondary btn-small" href={`/api/registry/export${keep.size ? `?${keep}` : ""}`}>Descargar resultados (CSV, {EXPORT_NOTE})</a>
           </p>
           <div className="card table-wrap" tabIndex={0} role="region" aria-label="Tabla desplazable de empresas del padrón">
             <table>

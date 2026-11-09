@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, FileSearch, House, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, X } from "lucide-react";
+import { ChevronDown, Ellipsis, FileSearch, House, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, Upload, X } from "lucide-react";
 import {
   createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore,
   type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject,
@@ -12,7 +12,7 @@ import { activeFor, type IconKey, type VisibleGroup } from "@/lib/nav";
 import { setNavCollapsed } from "@/app/actions/nav";
 
 const ICONS: Record<IconKey, ComponentType<{ size?: number; strokeWidth?: number; "aria-hidden"?: boolean }>> = {
-  home: House, prospect: Search, analyze: FileSearch, settings: Settings,
+  home: House, prospect: Search, analyze: FileSearch, settings: Settings, upload: Upload, more: Ellipsis,
 };
 const ICON = { size: 20, strokeWidth: 1.75, "aria-hidden": true } as const;
 

@@ -53,6 +53,27 @@ export async function createSession(userId: string, userAgent: string | null, op
  * olvide comprobarlo deja pasar a ese usuario. Solo el cambio de clave y el cierre de sesión piden `allowRestricted`.
  */
 export async function getSessionUser(token: string | undefined, opts: { allowRestricted?: boolean } = {}): Promise<SessionUser | null> {
+  const real = await getRealSessionUser(token, opts);
+  if (real || env().LOCAL_MODE !== "true") return real;
+  return localUser();
+}
+
+/**
+ * Modo local (LOCAL_MODE=true, nunca en producción): sin pantalla de acceso, se actúa como el primer administrador activo.
+ * No escribe nada; si no hay administradores, no hay sesión y se pide acceso como siempre.
+ */
+export async function localUser(): Promise<SessionUser | null> {
+  const r = await pool().query<{ id: string; email: string; name: string; role: Role; ui_prefs: unknown }>(
+    `SELECT id, email, name, role, ui_prefs FROM users WHERE role = 'admin' AND active ORDER BY created_at LIMIT 1`);
+  const u = r.rows[0];
+  if (!u) return null;
+  return {
+    sessionId: "00000000-0000-0000-0000-000000000000", userId: u.id, email: u.email, name: u.name, role: u.role,
+    csrfSecret: createHash("sha256").update(`local:${env().SESSION_SECRET}`).digest("base64url"), restricted: false, uiPrefs: parseUiPrefs(u.ui_prefs),
+  };
+}
+
+async function getRealSessionUser(token: string | undefined, opts: { allowRestricted?: boolean } = {}): Promise<SessionUser | null> {
   if (!token || token.length > 200) return null;
   const res = await pool().query<{
     id: string;
