@@ -27,6 +27,8 @@ export function createRateLimiter(limit: number, windowMs: number, now: () => nu
 }
 
 export const loginLimiter = createRateLimiter(10, 15 * 60 * 1000);
+/** Ingreso con clave: más holgado porque una oficina puede compartir una misma IP; la defensa principal es el bloqueo por cuenta. */
+export const passwordLoginLimiter = createRateLimiter(30, 15 * 60 * 1000);
 
 export function clientKey(request: Request): string {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";

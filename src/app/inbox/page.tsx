@@ -28,7 +28,6 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const [{ rows, total }, industries, users, indSignals] = await Promise.all([
     listInbox({ id: user.userId, role: user.role }, { ...f, owner }), listIndustries(), listUsers(), listIndustrySignals(),
   ]);
-  const seller = user.role === "salesperson";
   const page = f.page ?? 1;
   const pages = Math.max(1, Math.ceil(total / INBOX_PAGE));
   const link = (p: number) => `/inbox?${new URLSearchParams(Object.entries({ ...raw, page: String(p) }).filter(([, v]) => v) as [string, string][])}`;
@@ -36,15 +35,13 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   return (
     <AppShell user={user} current="/inbox">
       <h1>Bandeja priorizada</h1>
-      <p className="muted">{seller ? "Muestra las empresas que el equipo ya revisó y aprobó, y que son tuyas o están libres." : "Empresas con puntaje, de mayor a menor. Los puntajes de rubros distintos usan modelos distintos y solo son comparables si el modelo es el mismo."}</p>
+      <p className="muted">Empresas con puntaje, de mayor a menor. Los puntajes de rubros distintos usan modelos distintos y solo son comparables si el modelo es el mismo.</p>
       <form method="get" className="card row" role="search" aria-label="Filtrar la bandeja">
-        {!seller && (
-          <div><label htmlFor="owner">Responsable</label>
-            <select id="owner" name="owner" defaultValue={owner ?? ""}>
-              <option value="">Todos</option><option value="mine">Mías</option><option value="unassigned">Sin asignar</option>
-              {users.filter((u) => u.role === "salesperson" || u.role === "sales_lead").map((u) => <option key={u.id} value={u.id}>{u.email}</option>)}
-            </select></div>
-        )}
+        <div><label htmlFor="owner">Responsable</label>
+          <select id="owner" name="owner" defaultValue={owner ?? ""}>
+            <option value="">Todos</option><option value="mine">Mías</option><option value="unassigned">Sin asignar</option>
+            {users.map((u) => <option key={u.id} value={u.id}>{u.email}</option>)}
+          </select></div>
         <div><label htmlFor="industryId">Rubro</label>
           <select id="industryId" name="industryId" defaultValue={f.industryId ?? ""}><option value="">Todos</option>{industries.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select></div>
         <div><label htmlFor="city">Ciudad</label><input id="city" name="city" defaultValue={f.city} /></div>
@@ -57,13 +54,13 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
           <select id="signalStatus" name="signalStatus" defaultValue={f.signalStatus ?? "observed"}><option value="observed">Observada</option><option value="not_detected">No detectada</option></select></div>
         <div><label htmlFor="stage">Etapa</label>
           <select id="stage" name="stage" defaultValue={f.stage ?? ""}><option value="">Todas</option>{Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
-        {!seller && <div><label htmlFor="review">Revisión</label>
-          <select id="review" name="review" defaultValue={f.review ?? ""}><option value="">Todas</option><option value="pending_review">Pendiente</option><option value="approved">Aprobada</option><option value="rejected">Rechazada</option></select></div>}
+        <div><label htmlFor="review">Revisión</label>
+          <select id="review" name="review" defaultValue={f.review ?? ""}><option value="">Todas</option><option value="pending_review">Pendiente</option><option value="approved">Aprobada</option><option value="rejected">Rechazada</option></select></div>
         <button className="btn btn-secondary" type="submit">Filtrar</button>
       </form>
       <div className="card table-wrap" tabIndex={0} role="region" aria-label="Tabla desplazable de la bandeja">
         {rows.length === 0 ? (
-          <div className="empty"><h2>No hay empresas con estos filtros</h2><p>{seller ? "Cuando el equipo apruebe empresas de la lista semanal y te las asigne, aparecerán aquí." : "Prueba con otros filtros o espera a la próxima ejecución semanal."}</p></div>
+          <div className="empty"><h2>No hay empresas con estos filtros</h2><p>Prueba con otros filtros o espera a la próxima ejecución semanal.</p></div>
         ) : (
           <table>
             <caption className="muted">{total} empresa{total === 1 ? "" : "s"} · página {page} de {pages}</caption>

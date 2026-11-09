@@ -340,15 +340,12 @@ export interface DiagnosticSummary {
   id: string; company_id: string; company_name: string; company_domain: string | null; status: DiagRow["status"]; stale: boolean; version: number; blocking_flags: number; source: string; updated_at: Date; owner_id: string | null;
 }
 
-/** Un vendedor solo ve diagnósticos aprobados de empresas suyas o sin responsable. */
-export const canViewDiagnostic = (actor: { id: string; role: Role }, d: { status: string }, company: { owner_id: string | null }): boolean =>
-  actor.role !== "salesperson" || (d.status === "approved" && (company.owner_id === null || company.owner_id === actor.id));
+// Todos los usuarios con acceso ven todos los diagnósticos (D-62). Exportar sigue exigiendo que estén aprobados.
 
 export async function listDiagnostics(actor: { id: string; role: Role }, f: { status?: string } = {}): Promise<DiagnosticSummary[]> {
   const where: string[] = [];
   const params: unknown[] = [];
   if (f.status) { params.push(f.status); where.push(`d.status = $${params.length}`); }
-  if (actor.role === "salesperson") { params.push(actor.id); where.push(`d.status = 'approved' AND (c.owner_id IS NULL OR c.owner_id = $${params.length})`); }
   return (await pool().query<DiagnosticSummary>(
     `SELECT d.id, d.company_id, c.legal_name AS company_name, c.domain AS company_domain, d.status, d.stale, v.version, v.blocking_flags, v.source, d.updated_at, c.owner_id
        FROM diagnostics d JOIN companies c ON c.id = d.company_id JOIN diagnostic_versions v ON v.id = d.current_version_id
@@ -370,13 +367,12 @@ export async function getDiagnosticDetail(actor: { id: string; role: Role }, id:
             c.legal_name AS company_name, c.domain AS company_domain, c.owner_id, i.name AS industry_name, ua.email AS approved_by_email, uc.email AS created_by_email
        FROM diagnostics d JOIN companies c ON c.id = d.company_id LEFT JOIN industries i ON i.id = c.industry_id LEFT JOIN users ua ON ua.id = d.approved_by LEFT JOIN users uc ON uc.id = d.created_by WHERE d.id = $1`, [id]);
   const d = dr.rows[0];
-  if (!d || !can(actor.role, "companies.read") || !canViewDiagnostic(actor, d, d)) return null;
+  if (!d || !can(actor.role, "companies.read")) return null;
   const { v } = await loadDiag(id);
   const [versions, events, gens] = await Promise.all([
     pool().query(`SELECT v.id, v.version, v.source, v.blocking_flags, v.created_at, u.email AS edited_by_email FROM diagnostic_versions v LEFT JOIN users u ON u.id = v.edited_by WHERE v.diagnostic_id = $1 ORDER BY v.version DESC`, [id]),
     pool().query(`SELECT e.id, e.action, e.note, e.at, u.email AS actor_email, v.version FROM diagnostic_events e LEFT JOIN users u ON u.id = e.actor_id LEFT JOIN diagnostic_versions v ON v.id = e.version_id WHERE e.diagnostic_id = $1 ORDER BY e.id DESC LIMIT 100`, [id]),
-    actor.role === "salesperson" ? Promise.resolve({ rows: [] }) :
-      pool().query(`SELECT g.id, g.provider, g.model, g.prompt_version, g.status, g.input_tokens, g.output_tokens, g.estimated_cost_usd, g.created_at, g.error
+    pool().query(`SELECT g.id, g.provider, g.model, g.prompt_version, g.status, g.input_tokens, g.output_tokens, g.estimated_cost_usd, g.created_at, g.error
                       FROM ai_generations g WHERE g.company_id = $1 ORDER BY g.created_at DESC LIMIT 20`, [d.company_id]),
   ]);
   const ev = await pool().query<EvidenceObs>(`SELECT id::text AS id, signal_code, status, kind, confidence, value, evidence_excerpt, evidence_url FROM signal_observations WHERE id = ANY($1::bigint[])`, [v.observation_ids]);

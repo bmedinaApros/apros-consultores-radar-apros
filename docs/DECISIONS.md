@@ -62,3 +62,9 @@
 | D-58 | Sin `fallbacks` de rechazo del lado del servidor: un rechazo del modelo se muestra a una persona. | Evitar texto de otro modelo sin que nadie lo note. | Sí |
 | D-59 | La exportación solo existe en `loadExportable` (servidor) y se audita; el botón no es un control. | Flujo de aprobación forzado. | No |
 | D-60 | Google Places queda descartada como fuente de descubrimiento: sus términos (3.2.3 y 14.3) prohíben guardar nombres, direcciones y sitios, salvo latitud/longitud 30 días. | Revisión de términos del 2026-11-07; no es opinión legal. | Sí, si cambian los términos o Legal lo permite |
+| D-61 | Acceso con usuario y contraseña propios (scrypt, bloqueo progresivo, clave temporal con cambio obligatorio). Google queda opcional y desactivado por defecto. Reemplaza D-04. | Pedido del 2026-11-07: «todos pueden tener acceso con clave y contraseña». | Sí |
+| D-62 | Se retira la restricción D-50: todos los usuarios con acceso ven todo (lista semanal, bandeja, diagnósticos). Las reglas de **edición** por responsable y de **descarga** (solo aprobados) siguen igual. | Pedido del 2026-11-07: «todos podemos ver todo». | Sí |
+| D-63 | Menú por tareas: Inicio, Prospectar, Analizar y Configuración aparte; colapsable; preferencia por usuario en `users.ui_prefs`; búsqueda global y menú de cuenta en la barra superior. Una pantalla inexistente no aparece. | Plan v2.1, sección 7. | Sí |
+| D-64 | No se agrega webappanalyzer ni código GPL. La detección de tecnologías se amplía con firmas propias. | Decisión del 2026-11-07. | Sí |
+| D-65 | Se permiten datos reales de fuentes públicas oficiales en el equipo de desarrollo. Siguen sin guardarse datos personales de contacto de personas naturales. Levanta D-19 solo para ese caso. | Respuesta 2 del 2026-11-07. | Sí |
+| D-66 | Radar es solo para obtener información: se cancelan el embudo, las actividades, el panel de resultados y las antiguas fases 6 y 7. | Respuesta 4 del 2026-11-07. | Sí |
