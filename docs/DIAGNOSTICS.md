@@ -26,7 +26,10 @@ PDF de una página A4 (Questrial/Roboto, logo APROS; si el texto no cabe se redu
 En una lista semanal, «Generar diagnósticos de las aprobadas» encola hasta 30 empresas aprobadas sin diagnóstico; se generan de una en una respetando el presupuesto diario.
 
 ## Modos de IA
-`AI_PROVIDER=disabled` (por defecto), `simulated` (texto de demostración con reglas; prohibido en producción) o `anthropic` (requiere `ANTHROPIC_API_KEY`; `ANTHROPIC_MODEL`, por defecto `claude-opus-5-5`). Ver `docs/AI-DATA.md`.
+`AI_PROVIDER=rules` (por defecto): **plantillas y reglas, sin IA y sin costo**; el texto sale de las señales observadas, se adapta al rubro, prioriza hasta 3 oportunidades (máximo 2 del mismo servicio), solo menciona servicios del catálogo vigente y es determinístico (misma evidencia, mismo texto). Pasa por el mismo validador y por la misma revisión humana que el de IA. `anthropic` (opcional; requiere `ANTHROPIC_API_KEY`; `ANTHROPIC_MODEL`, por defecto `claude-opus-5-5`) redacta con IA y tiene topes de gasto. `disabled` y `simulated` son valores antiguos y equivalen a `rules`. Para pausar la generación, desmarca «Permitir generar diagnósticos» en Configuración → Diagnósticos: reglas e IA.
 
 ## Límites conocidos
 La integración real con Anthropic se probó solo con un cliente simulado de la API (sin clave); el primer uso real debe revisarse a mano. Prompts y plantillas no están calibrados con casos reales. Los costos son estimaciones con precios de lista.
+
+## Reglas del diagnóstico sin IA (V2-3a)
+Cada regla produce una oportunidad candidata con un peso; gana lo más importante: conexión segura (95), móvil (90), velocidad en móvil (70–85), caminos de contacto (62–82), medición (60), atención por WhatsApp (50–65 según rubro), herramienta del rubro (55), mantenimiento de enlaces (52), base de SEO técnico (40–72), contenido al día (45), visibilidad en asistentes de IA (38), información de la empresa legible por máquinas (36) y medición de campañas en redes (30, como hipótesis). Sin ninguna brecha, propone validar prioridades con la empresa (hipótesis). El vocabulario de cada rubro está en `src/lib/diagnostics/rules.ts`; un rubro desconocido usa un texto neutro. Es menos específico que un texto con IA: se mejora agregando reglas y vocabulario.

@@ -1,6 +1,6 @@
 # Datos que Radar envía al proveedor de IA
 
-Aplica solo cuando `AI_PROVIDER=anthropic`. Con `simulated` o `disabled` no sale nada de la máquina.
+Aplica solo cuando `AI_PROVIDER=anthropic` (opcional). Con `rules` (el valor por defecto: plantillas y reglas, sin IA) no sale nada de la máquina.
 
 ## Qué se envía (por diagnóstico)
 - **Instrucciones fijas** (`diagnostico-v1`): reglas de evidencia y lenguaje, más la guía del rubro (editable por un administrador).

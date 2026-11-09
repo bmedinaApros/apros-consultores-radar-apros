@@ -50,6 +50,8 @@ export interface CompanyFilters {
   stage?: string;
   city?: string;
   ownerId?: string;
+  /** Solo empresas que aún no tienen sitio web asignado. */
+  noWeb?: boolean;
   page?: number;
 }
 export const PAGE_SIZE = 25;
@@ -67,6 +69,7 @@ export async function listCompanies(f: CompanyFilters, db: Db = pool()): Promise
   if (f.stage) where.push(`c.stage = ${p(f.stage)}::pipeline_stage`);
   if (f.city) where.push(`lower(c.city) = ${p(f.city.toLowerCase())}`);
   if (f.ownerId) where.push(`c.owner_id = ${p(f.ownerId)}`);
+  if (f.noWeb) where.push(`c.domain IS NULL`);
   const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const page = Math.max(1, f.page ?? 1);
   const [rows, total] = await Promise.all([
