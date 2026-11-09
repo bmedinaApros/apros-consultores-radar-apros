@@ -20,7 +20,8 @@
     "worker": "tsx --env-file=.env scripts/worker.ts",
     "user:create": "tsx --env-file=.env scripts/create-user.ts",
     "registry:import": "tsx --env-file=.env scripts/registry-import.ts",
-    "registry:rubros": "tsx --env-file=.env scripts/registry-rubros.ts"
+    "registry:rubros": "tsx --env-file=.env scripts/registry-rubros.ts",
+    "registry:search": "tsx --env-file=.env scripts/registry-search.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

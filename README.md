@@ -103,7 +103,15 @@ npm run registry:import -- --file padron_reducido_ruc.zip --note "Actualizado al
 npm run registry:import -- --file padron_reducido_local_anexo.zip --only-known
 ```
 
-4. En la aplicación: **Prospectar → Buscar empresas** para filtrar y promover a la base, y **Importaciones del padrón** para cargar desde la pantalla (requiere el worker: `npm run worker`).
+4. Buscar desde la terminal (útil para una IA o para algo rápido; entiende frases como «inmobiliarias en Lima»):
+
+```bash
+npm run registry:search -- "inmobiliarias en Lima" --limit 20
+npm run registry:search -- "clínicas arequipa" --json
+npm run registry:rubros   # recalcula los rubros sugeridos tras cambiar las reglas
+```
+
+5. En la aplicación: **Prospectar → Buscar empresas** para filtrar y promover a la base, y **Importaciones del padrón** para cargar desde la pantalla (requiere el worker: `npm run worker`).
 
 ## Comandos
 

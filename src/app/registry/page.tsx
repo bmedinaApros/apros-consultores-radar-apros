@@ -6,6 +6,7 @@ import { can } from "@/lib/rbac";
 import { pool } from "@/lib/db";
 import { listIndustries } from "@/lib/companies/service";
 import { COUNT_CAP, REGISTRY_PAGE, filtersSchema, registryStats, searchRegistry } from "@/lib/registry/service";
+import { parseQuickQuery } from "@/lib/registry/quick";
 import { promoteAction } from "./actions";
 import { SelectAll } from "./select-all";
 
@@ -18,15 +19,17 @@ const flag = (v: string | undefined) => (v === "1" || v === "on" ? true : undefi
 export default async function RegistryPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requirePermissionPage("registry.read");
   const q = await searchParams;
-  const parsed = filtersSchema.safeParse({
-    q: q.q || undefined, status: q.status || undefined, condition: q.condition || undefined, person: q.person || undefined,
-    ubigeo: q.ubigeo || q.dept || undefined, industry: q.industry || undefined, notPromoted: flag(q.notPromoted) ?? false,
-    includeMissing: flag(q.includeMissing) ?? false, after: q.after || undefined,
-  });
   const [depts, industries, stats] = await Promise.all([
     pool().query<{ code: string; department: string }>(`SELECT code, department FROM ubigeo WHERE length(code) = 2 ORDER BY department`),
     listIndustries(), registryStats(),
   ]);
+  // Una sola caja: la frase se interpreta (RUC, departamento, palabras del nombre); lo avanzado, si se usa, manda sobre ella.
+  const quick = parseQuickQuery(q.s ?? "", depts.rows);
+  const parsed = filtersSchema.safeParse({
+    q: q.q || quick.q || undefined, status: q.status || undefined, condition: q.condition || undefined, person: q.person || undefined,
+    ubigeo: q.ubigeo || q.dept || quick.ubigeo || undefined, industry: q.industry || undefined, notPromoted: flag(q.notPromoted) ?? false,
+    includeMissing: flag(q.includeMissing) ?? false, after: q.after || undefined,
+  });
   const result = parsed.success ? await searchRegistry(parsed.data) : null;
   const mayPromote = can(user.role, "registry.promote");
   const keep = new URLSearchParams(Object.entries(q).filter(([k, v]) => v && k !== "after" && k !== "ok" && k !== "error") as [string, string][]);
@@ -41,22 +44,34 @@ export default async function RegistryPage({ searchParams }: { searchParams: Pro
         Estar en el padrón no convierte a una empresa en candidata: tú eliges cuáles pasan a la base de trabajo.
       </p>
       <Flash ok={q.ok} error={q.error ?? (parsed.success ? undefined : "Revisa los filtros: alguno no tiene un formato válido.")} />
-      <form method="get" className="card row" role="search" aria-label="Filtrar el padrón">
-        <div><label htmlFor="q">Razón social o RUC</label><input id="q" name="q" defaultValue={q.q} maxLength={100} placeholder="Palabras del nombre o inicio del RUC" /></div>
-        <div><label htmlFor="dept">Departamento</label>
-          <select id="dept" name="dept" defaultValue={q.dept ?? ""}><option value="">Todos</option>{depts.rows.map((d) => <option key={d.code} value={d.code}>{d.department}</option>)}</select></div>
-        <div><label htmlFor="ubigeo">Ubigeo (2, 4 o 6 dígitos)</label><input id="ubigeo" name="ubigeo" defaultValue={q.ubigeo} inputMode="numeric" pattern="\d{2}(\d{2}(\d{2})?)?" maxLength={6} /></div>
-        <div><label htmlFor="industry">Rubro sugerido</label>
-          <select id="industry" name="industry" defaultValue={q.industry ?? ""}><option value="">Todos</option><option value="none">Sin sugerencia</option>{industries.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select></div>
-        <div><label htmlFor="status">Estado</label><input id="status" name="status" list="estados" defaultValue={q.status} maxLength={40} placeholder="ACTIVO" />
-          <datalist id="estados"><option value="ACTIVO" /><option value="SUSPENSION TEMPORAL" /><option value="BAJA DE OFICIO" /><option value="BAJA DEFINITIVA" /></datalist></div>
-        <div><label htmlFor="condition">Condición</label><input id="condition" name="condition" list="condiciones" defaultValue={q.condition} maxLength={40} placeholder="HABIDO" />
-          <datalist id="condiciones"><option value="HABIDO" /><option value="NO HABIDO" /><option value="NO HALLADO" /></datalist></div>
-        <div><label htmlFor="person">Tipo</label>
-          <select id="person" name="person" defaultValue={q.person ?? "juridica"}><option value="juridica">Personas jurídicas (RUC 20)</option><option value="natural">Personas naturales</option><option value="all">Todas</option></select></div>
-        <div><label><input type="checkbox" name="notPromoted" value="1" defaultChecked={flag(q.notPromoted)} /> Solo las que aún no están en la base</label>
-          <label><input type="checkbox" name="includeMissing" value="1" defaultChecked={flag(q.includeMissing)} /> Incluir las que ya no aparecen en el padrón</label></div>
-        <button className="btn btn-secondary" type="submit">Buscar</button>
+      <form method="get" className="card stack" role="search" aria-label="Buscar en el padrón">
+        <div className="row">
+          <div style={{ flex: "1 1 320px" }}>
+            <label htmlFor="s">¿Qué empresas buscas?</label>
+            <input id="s" name="s" defaultValue={q.s} maxLength={100} style={{ width: "100%" }} autoFocus placeholder="Ej.: inmobiliarias en Lima · clínicas Arequipa · 20100193117" />
+          </div>
+          <button className="btn btn-primary" type="submit">Buscar</button>
+        </div>
+        {q.s && quick.understood.length > 0 && <p className="muted" role="status">Lo que entendí: {quick.understood.join(" · ")}. Jurídicas, activas y habidas.</p>}
+        <details>
+          <summary>Más filtros (opcionales)</summary>
+          <div className="row">
+            <div><label htmlFor="q">Razón social o RUC (exacto)</label><input id="q" name="q" defaultValue={q.q} maxLength={100} /></div>
+            <div><label htmlFor="dept">Departamento</label>
+              <select id="dept" name="dept" defaultValue={q.dept ?? ""}><option value="">Todos</option>{depts.rows.map((d) => <option key={d.code} value={d.code}>{d.department}</option>)}</select></div>
+            <div><label htmlFor="ubigeo">Ubigeo (2, 4 o 6 dígitos)</label><input id="ubigeo" name="ubigeo" defaultValue={q.ubigeo} inputMode="numeric" pattern="\d{2}(\d{2}(\d{2})?)?" maxLength={6} /></div>
+            <div><label htmlFor="industry">Rubro sugerido</label>
+              <select id="industry" name="industry" defaultValue={q.industry ?? ""}><option value="">Todos</option><option value="none">Sin sugerencia</option>{industries.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select></div>
+            <div><label htmlFor="status">Estado</label><input id="status" name="status" list="estados" defaultValue={q.status} maxLength={40} placeholder="ACTIVO" />
+              <datalist id="estados"><option value="ACTIVO" /><option value="SUSPENSION TEMPORAL" /><option value="BAJA DE OFICIO" /><option value="BAJA DEFINITIVA" /></datalist></div>
+            <div><label htmlFor="condition">Condición</label><input id="condition" name="condition" list="condiciones" defaultValue={q.condition} maxLength={40} placeholder="HABIDO" />
+              <datalist id="condiciones"><option value="HABIDO" /><option value="NO HABIDO" /><option value="NO HALLADO" /></datalist></div>
+            <div><label htmlFor="person">Tipo</label>
+              <select id="person" name="person" defaultValue={q.person ?? "juridica"}><option value="juridica">Personas jurídicas (RUC 20)</option><option value="natural">Personas naturales</option><option value="all">Todas</option></select></div>
+            <div><label><input type="checkbox" name="notPromoted" value="1" defaultChecked={flag(q.notPromoted)} /> Solo las que aún no están en la base</label>
+              <label><input type="checkbox" name="includeMissing" value="1" defaultChecked={flag(q.includeMissing)} /> Incluir las que ya no aparecen en el padrón</label></div>
+          </div>
+        </details>
       </form>
 
       {result && (result.rows.length === 0 ? (
