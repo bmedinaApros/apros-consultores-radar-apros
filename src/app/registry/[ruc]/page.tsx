@@ -64,6 +64,8 @@ export default async function RegistryDetailPage({ params, searchParams }: { par
               <option value="suggested">El sugerido (si lo hay)</option><option value="none">Ninguno (por clasificar)</option>
               {industries.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
             </select>
+            <label htmlFor="website">Sitio web (opcional)</label>
+            <input id="website" name="website" maxLength={300} placeholder="ejemplo.com.pe" />
             <button className="btn btn-primary" type="submit">Promover a la base</button>
           </form>
         ) : <p className="muted">{row.dnc || row.client ? "No se puede promover: está en no contactar o es cliente activo." : "No tienes permiso para promover empresas."}</p>}

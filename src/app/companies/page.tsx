@@ -15,6 +15,7 @@ const qsSchema = z.object({
   industryId: z.string().uuid().optional().catch(undefined),
   classification: z.enum(["classified", "to_classify"]).optional().catch(undefined),
   stage: z.string().max(30).optional(),
+  noWeb: z.enum(["1"]).optional().catch(undefined),
   page: z.coerce.number().int().min(1).max(10000).optional().catch(undefined),
   ok: z.string().max(200).optional(),
   error: z.string().max(300).optional(),
@@ -23,7 +24,7 @@ const qsSchema = z.object({
 export default async function CompaniesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requirePermissionPage("companies.read");
   const f = qsSchema.parse(await searchParams);
-  const [{ rows, total }, industries] = await Promise.all([listCompanies(f), listIndustries()]);
+  const [{ rows, total }, industries] = await Promise.all([listCompanies({ ...f, noWeb: f.noWeb === "1" }), listIndustries()]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const page = f.page ?? 1;
   const canWrite = can(user.role, "companies.write");
@@ -51,6 +52,7 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
             <option value="">Todas</option>
             {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select></div>
+        <div><label><input type="checkbox" name="noWeb" value="1" defaultChecked={f.noWeb === "1"} /> Solo las que no tienen sitio web</label></div>
         <button className="btn btn-secondary" type="submit">Filtrar</button>
       </form>
       <div className="card table-wrap" tabIndex={0} role="region" aria-label="Tabla desplazable de empresas">

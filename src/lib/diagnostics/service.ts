@@ -143,7 +143,7 @@ const citedIds = (c: DiagnosticContent): string[] => [...new Set(c.opportunities
 
 async function insertVersion(
   c: { query: (sql: string, p?: unknown[]) => Promise<{ rows: { id: string; version?: number }[] }> },
-  d: { diagnosticId: string; source: "ai" | "simulated" | "human_edit"; content: DiagnosticContent; flags: Flag[]; evidenceRunId: string | null; scoreId: string | null; generationId: string | null; templateHash: string | null; editedBy: string | null },
+  d: { diagnosticId: string; source: "ai" | "rules" | "simulated" | "human_edit"; content: DiagnosticContent; flags: Flag[]; evidenceRunId: string | null; scoreId: string | null; generationId: string | null; templateHash: string | null; editedBy: string | null },
 ): Promise<{ id: string; version: number }> {
   const next = await c.query(`SELECT COALESCE(max(version), 0) + 1 AS v FROM diagnostic_versions WHERE diagnostic_id = $1`, [d.diagnosticId]);
   const version = Number((next.rows[0] as unknown as { v: number }).v);
@@ -174,7 +174,7 @@ export async function generateDiagnostic(actor: ActorInfo, companyId: string, de
   const base = { companyId, provider: provider.id, model: provider.model, templateHash: template.hash, requestedBy: actor.id };
 
   // Presupuesto: se comprueba el peor caso ANTES de llamar al modelo
-  const worst = provider.id === "simulated" ? 0 : worstCaseCost(provider.model, system.length + user.length, maxTokens);
+  const worst = provider.id === "rules" ? 0 : worstCaseCost(provider.model, system.length + user.length, maxTokens);
   try {
     assertWithinBudget(settings, await currentSpend(), worst);
   } catch (e) {
@@ -208,7 +208,7 @@ export async function generateDiagnostic(actor: ActorInfo, companyId: string, de
   }
 
   const generationId = await recordGeneration({ ...base, ...usage, status: "ok", raw: parsedRaw });
-  const source = provider.id === "simulated" ? "simulated" : "ai";
+  const source = provider.id === "rules" ? "rules" : "ai";
   return withTransaction(async (c) => {
     const ex = await c.query<{ id: string; status: string }>(`SELECT id, status FROM diagnostics WHERE company_id = $1 FOR UPDATE`, [companyId]);
     let diagnosticId = ex.rows[0]?.id;
@@ -232,7 +232,7 @@ interface DiagRow {
   current_version_id: string | null; approved_version_id: string | null; created_by: string | null; approved_by: string | null; approved_at: Date | null; updated_at: Date;
 }
 interface VersionRow {
-  id: string; diagnostic_id: string; version: number; source: "ai" | "simulated" | "human_edit"; content: DiagnosticContent; flags: Flag[]; blocking_flags: number;
+  id: string; diagnostic_id: string; version: number; source: "ai" | "rules" | "simulated" | "human_edit"; content: DiagnosticContent; flags: Flag[]; blocking_flags: number;
   evidence_run_id: string | null; observation_ids: string[]; created_at: Date; edited_by: string | null; generation_id: string | null;
 }
 
@@ -387,6 +387,8 @@ export async function getDiagnosticDetail(actor: { id: string; role: Role }, id:
 export interface Exportable {
   diagnosticId: string; versionId: string; version: number; content: DiagnosticContent; companyName: string; companyDomain: string; industryName: string | null;
   approvedAt: Date; evidence: Map<string, EvidenceObs>; evidenceDate: Date | null;
+  /** Todas las señales revisadas en el análisis que respalda la versión (para el anexo del informe). */
+  allObservations: EvidenceObs[]; pagesFetched: number | null;
 }
 
 /**
@@ -407,14 +409,18 @@ export async function loadExportable(actor: { id: string; role: Role }, diagnost
     throw new DiagnosticError(`El diagnóstico está desactualizado (${stale.reason}): regéneralo y vuelve a aprobarlo`);
   }
   if (d.stale) throw new DiagnosticError(`El diagnóstico está desactualizado (${d.stale_reason ?? "evidencia cambiada"})`);
-  const run = v.evidence_run_id ? await pool().query<{ finished_at: Date }>(`SELECT finished_at FROM analysis_runs WHERE id = $1`, [v.evidence_run_id]) : null;
+  const run = v.evidence_run_id ? await pool().query<{ finished_at: Date; pages_fetched: number }>(`SELECT finished_at, pages_fetched FROM analysis_runs WHERE id = $1`, [v.evidence_run_id]) : null;
+  const all = v.evidence_run_id
+    ? (await pool().query<EvidenceObs>(`SELECT id::text AS id, signal_code, status, kind, confidence, value, evidence_excerpt, evidence_url FROM signal_observations WHERE analysis_run_id = $1 ORDER BY id`, [v.evidence_run_id])).rows
+    : [];
   return {
     diagnosticId, versionId: v.id, version: v.version, content: diagnosticSchema.parse(v.content), companyName: d.company_name, companyDomain: d.company_domain ?? "",
     industryName: d.industry_name, approvedAt: d.approved_at, evidence: detail.evidence, evidenceDate: run?.rows[0]?.finished_at ?? null,
+    allObservations: all, pagesFetched: run?.rows[0]?.pages_fetched ?? null,
   };
 }
 
-export async function recordExport(actor: ActorInfo, x: { diagnosticId: string; versionId: string; format: "pdf" | "pptx"; bytes: Buffer }): Promise<void> {
+export async function recordExport(actor: ActorInfo, x: { diagnosticId: string; versionId: string; format: "pdf" | "pptx" | "informe"; bytes: Buffer }): Promise<void> {
   await withTransaction(async (c) => {
     await c.query(`INSERT INTO diagnostic_exports (diagnostic_id, version_id, format, sha256, bytes, exported_by) VALUES ($1,$2,$3,$4,$5,$6)`, [x.diagnosticId, x.versionId, x.format, createHash("sha256").update(x.bytes).digest("hex"), x.bytes.length, actor.id]);
     await event(c, x.diagnosticId, x.versionId, `exported_${x.format}`, actor.id);

@@ -36,12 +36,12 @@ export default async function AiAdminPage({ searchParams }: { searchParams: Prom
     pool().query<{ status: string; n: string }>(`SELECT status, count(*) AS n FROM ai_generations WHERE created_at > now() - interval '30 days' GROUP BY status ORDER BY status`),
   ]);
   const e = env();
-  const mode = e.AI_PROVIDER === "anthropic" ? `Anthropic (${e.ANTHROPIC_MODEL})${e.ANTHROPIC_API_KEY ? "" : " — falta ANTHROPIC_API_KEY"}` : e.AI_PROVIDER === "simulated" ? "Simulado (solo demostración, no usa IA real)" : "Desactivada";
+  const mode = e.AI_PROVIDER === "anthropic" ? `Anthropic (${e.ANTHROPIC_MODEL})${e.ANTHROPIC_API_KEY ? "" : " — falta ANTHROPIC_API_KEY"}` : "Plantillas y reglas (sin IA, costo cero)";
   const withTemplate = new Set(templates.map((t) => t.industry_id));
   return (
     <AppShell user={user} current="/admin/ai">
-      <h1>IA y presupuesto</h1>
-      <p className="muted">La IA solo redacta diagnósticos a partir de lo observado en el sitio público; una persona los revisa antes de descargarlos. Los datos que se envían al proveedor están descritos en <code>docs/AI-DATA.md</code>.</p>
+      <h1>Diagnósticos: reglas e IA</h1>
+      <p className="muted">Por defecto los diagnósticos se generan con <strong>plantillas y reglas</strong> a partir de lo observado en el sitio público: sin costo y sin enviar datos a nadie. Si activas la IA (opcional), redacta con el mismo esquema y los mismos controles. En ambos casos una persona los revisa antes de descargarlos. Los datos que se enviarían a la IA están descritos en <code>docs/AI-DATA.md</code>.</p>
       <Flash ok={q.ok} error={q.error} />
       <div className="grid-2">
         <div className="card"><strong>Modo</strong><p>{mode}</p><p className="muted">Se define con variables de entorno, no desde esta pantalla.</p></div>
@@ -50,7 +50,7 @@ export default async function AiAdminPage({ searchParams }: { searchParams: Prom
       </div>
       <form action={saveSettingsAction} className="card stack">
         <h2>Límites</h2>
-        <div><label><input type="checkbox" name="enabled" defaultChecked={s.enabled} /> Permitir generar diagnósticos con IA</label></div>
+        <div><label><input type="checkbox" name="enabled" defaultChecked={s.enabled} /> Permitir generar diagnósticos</label></div>
         <div><label htmlFor="dailyUsd">Tope diario (USD)</label><input id="dailyUsd" name="dailyUsd" type="number" min={0} step="0.01" defaultValue={s.dailyUsd} required /></div>
         <div><label htmlFor="monthlyUsd">Tope mensual (USD)</label><input id="monthlyUsd" name="monthlyUsd" type="number" min={0} step="0.01" defaultValue={s.monthlyUsd} required /></div>
         <div><label htmlFor="maxOutputTokens">Máximo de tokens de salida por diagnóstico</label><input id="maxOutputTokens" name="maxOutputTokens" type="number" min={1000} max={64000} step={500} defaultValue={s.maxOutputTokens} required /></div>

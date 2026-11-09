@@ -271,7 +271,9 @@ Una rama `feat/v2-<tema>` desde `main` y un PR en borrador por fase. Al final de
 |---|---|---|---|---|
 | **V2-1** | `feat/v2-menu-acceso` | Menú nuevo, colapsado, móvil, preferencia por usuario, búsqueda global sobre `companies`, **acceso con usuario y contraseña** | Aprobación | Sí |
 | **V2-2** | `feat/v2-base-oficial` | Dedupe en SQL, padrón, importación reanudable y filtros, rubro por reglas (o CIIU si 10.1 lo resuelve), Buscar empresas con promoción, Fuentes e importaciones | V2-1, 10.2 | Sí, con archivo sintético; el archivo real en tu Mac |
-| **V2-3** | `feat/v2-enriquecimiento` | OSM, página de contacto, auditoría web ampliada, PageSpeed, detector de tecnologías (según 10.6), diagnóstico `rules` | V2-2; 10.4 | Parcial |
+| **V2-3a** | `feat/v2-sin-ia-y-web` | Diagnóstico sin IA (plantillas y reglas) e ingreso rápido del sitio web con validación. **Hecha.** |
+| ~~V2-3b~~ | — | OSM, página de contacto, PageSpeed y firmas de tecnologías: **fuera del proyecto por ahora** (2026-11-09). |
+| ~~V2-3~~ | `feat/v2-enriquecimiento` | OSM, página de contacto, auditoría web ampliada, PageSpeed, detector de tecnologías (según 10.6), diagnóstico `rules` | V2-2; 10.4 | Parcial |
 | **V2-4** | `feat/v2-senales` | Oportunidades públicas (SEACE/OECE, según 10.3), Get on Board, Indecopi asistido, enlace de Meta | Términos de cada una | Parcial |
 | **V2-5** | `feat/v2-directorios` | Solo directorios y portales cuya revisión apruebes: asistidos o automáticos | Tu aprobación por fuente | Parcial |
 | **V2-6** | `feat/v2-scoring` | Nuevas señales, vigencia, pesos por rubro, nueva versión de modelos | V2-3 y V2-4 | Sí |

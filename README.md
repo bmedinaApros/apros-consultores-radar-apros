@@ -82,10 +82,10 @@ En la ficha de cada empresa están el desglose del puntaje, los criterios manual
 
 ## Probar los diagnósticos con IA (fase 5)
 
-1. En `.env`: `AI_PROVIDER=simulated` (texto de demostración, sin gasto ni salida de datos). Reinicia `npm run dev` y `npm run worker`.
+1. No necesitas configurar nada: por defecto (`AI_PROVIDER=rules`) los diagnósticos se generan con **plantillas y reglas**, sin IA y sin costo. Si tu `.env` dice `disabled` o `simulated` (valores antiguos), funciona igual; puedes cambiarlo a `rules`.
 2. Entra como administrador, abre una empresa con análisis completado y pulsa **Generar diagnóstico con IA** (o, en una lista semanal con empresas aprobadas, **Generar diagnósticos de las aprobadas**).
 3. En **Diagnósticos** revisa el texto con su evidencia, envía a revisión y, con un usuario consultor, aprueba; entonces aparecen **Descargar PDF** y **Descargar PPTX**.
-4. Para IA real: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY=…` y, si quieres, `ANTHROPIC_MODEL`. Ajusta topes en **IA y presupuesto**. Primero lee `docs/AI-DATA.md`.
+4. IA opcional: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY=…` y, si quieres, `ANTHROPIC_MODEL`. Ajusta topes en **IA y presupuesto**. Primero lee `docs/AI-DATA.md`.
 
 ## Cargar el padrón de SUNAT (V2-2, en construcción)
 

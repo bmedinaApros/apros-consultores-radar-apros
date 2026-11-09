@@ -9,6 +9,7 @@ import { ForbiddenError } from "@/lib/rbac";
 import { canAnalyze } from "@/lib/analyzer/service";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { enqueueAnalysis } from "@/lib/jobs/queue";
+import { revalidateCompanyWebsite, setCompanyWebsite } from "@/lib/companies/web";
 
 const str = z.string().max(300).optional().default("");
 const createSchema = z.object({
@@ -118,5 +119,28 @@ export async function recomputeScoreAction(formData: FormData): Promise<void> {
     if (!canAnalyze({ id: user.userId, role: user.role }, company)) throw new ForbiddenError("No puedes recalcular esta empresa");
     const r = await scoreCompany(id);
     return !r ? "Aún no hay análisis completado: no se puede puntuar." : r.created ? "Puntaje recalculado." : "El puntaje ya estaba al día (nada cambió).";
+  });
+}
+
+const webLimiter = createRateLimiter(60, 60 * 60 * 1000);
+
+/** Ingreso rápido del sitio web: valida (DNS, robots, portada) y, si el dominio es consultable, lo asigna. */
+export async function setWebsiteAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const d = z.object({ id: z.string().uuid(), website: z.string().max(300) }).parse(Object.fromEntries(formData));
+  return guarded(`/companies/${d.id}`, async () => {
+    if (!webLimiter.check(user.userId).allowed) throw new CompanyError("Demasiadas comprobaciones de sitios web; intenta más tarde");
+    const r = await setCompanyWebsite(toActor(user), d.id, d.website);
+    return `Sitio web guardado: ${r.domain}. ${r.messages.join(" ")}`;
+  });
+}
+
+export async function revalidateWebsiteAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = z.string().uuid().parse(formData.get("id"));
+  return guarded(`/companies/${id}`, async () => {
+    if (!webLimiter.check(user.userId).allowed) throw new CompanyError("Demasiadas comprobaciones de sitios web; intenta más tarde");
+    const r = await revalidateCompanyWebsite(toActor(user), id);
+    return `Sitio comprobado: ${r.messages.join(" ")}`;
   });
 }

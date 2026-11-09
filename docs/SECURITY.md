@@ -116,3 +116,10 @@ Las pruebas de SSRF usan servidores locales con direcciones públicas simuladas 
 - **Auditoría:** ingresos, fallos (con motivo, sin la clave), cambios, restablecimientos, desbloqueos y altas.
 - **Primer administrador:** `npm run user:create` (consola del servidor; pide la clave sin mostrarla; la clave nunca se pasa como argumento).
 - **Límites conocidos:** no hay segundo factor (recomendado antes de publicar en internet); el limitador por IP vive en memoria y confía en `X-Forwarded-For` (ver límites de la fase 1); una lista completa de claves filtradas no está incluida; exige HTTPS en producción (cookie `__Host-`).
+
+## Ingreso del sitio web de una empresa (V2-3a)
+
+- La validación usa el mismo descargador seguro del analizador: solo direcciones públicas (se resuelve una vez y se fija la IP), redirecciones revalidadas una a una, límites de tamaño y tiempo, respeto de `robots.txt`. Una persona no puede hacer que Radar consulte direcciones internas escribiendo un dominio.
+- Se rechazan direcciones IP, dominios reservados, redes sociales y correos gratuitos antes de hacer ninguna petición.
+- Cada comprobación queda registrada (quién, cuándo, resultado) y auditada. Límite de 60 comprobaciones por hora y usuario (en memoria; ver límites de la fase 1).
+- Se comprueban los permisos **antes** de consultar el sitio (un vendedor no hace consultas sobre empresas que no puede modificar).

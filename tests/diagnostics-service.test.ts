@@ -8,9 +8,11 @@ import {
   approveDiagnostic, DiagnosticError, editDiagnostic, generateDiagnostic, getDiagnosticDetail, getTemplate, listDiagnostics,
   loadExportable, recordExport, rejectDiagnostic, saveTemplate, submitForReview,
 } from "@/lib/diagnostics/service";
-import { simulatedProvider, AiRefusalError, type AiProvider } from "@/lib/diagnostics/ai";
+import { AiRefusalError, type AiProvider } from "@/lib/diagnostics/ai";
+import { rulesProvider } from "@/lib/diagnostics/rules";
 import { getAiSettings, saveAiSettings, DEFAULT_AI, BudgetError } from "@/lib/diagnostics/budget";
 import { renderPdf } from "@/lib/diagnostics/export-pdf";
+import { renderReport } from "@/lib/diagnostics/export-report";
 import { renderPptx } from "@/lib/diagnostics/export-pptx";
 import { fakeAnalyzerDeps, GOOD, POOR } from "./helpers-analyzer";
 import { mkActor, ownerPool, resetData } from "./helpers";
@@ -30,7 +32,7 @@ async function setup(html = POOR) {
   await scoreCompany(id);
   return { admin, consultant, lead, sales, id, sites, deps: mk.deps };
 }
-const sim = simulatedProvider();
+const sim = rulesProvider();
 
 describe("generación", () => {
   it("genera un borrador validado, con versión, evento, registro de la llamada y sin marcas bloqueantes", async () => {
@@ -41,7 +43,7 @@ describe("generación", () => {
     const d = (await getDiagnosticDetail(lead, r.diagnosticId))!;
     expect(d.diagnostic.status).toBe("draft");
     expect(d.version.content.opportunities.length).toBeGreaterThan(0);
-    expect(d.generations[0]).toMatchObject({ provider: "simulated", status: "ok" });
+    expect(d.generations[0]).toMatchObject({ provider: "rules", status: "ok" });
     expect(d.events.map((e) => e.action)).toEqual(expect.arrayContaining(["created", "generated"]));
   });
 
@@ -198,6 +200,13 @@ describe("exportación", () => {
     expect(pptx.subarray(0, 2).toString()).toBe("PK");
     await recordExport(s.sales, { diagnosticId: g.diagnosticId, versionId: x.versionId, format: "pdf", bytes: pdf });
     expect((await pool().query("SELECT count(*)::int AS n FROM diagnostic_exports")).rows[0].n).toBe(1);
+    // informe de varias páginas con la marca: portada + resumen + una página por oportunidad (+ anexo)
+    const informe = await renderReport(x);
+    expect(informe.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(Number(/\/Count (\d+)/.exec(informe.toString("latin1"))?.[1])).toBeGreaterThanOrEqual(2 + x.content.opportunities.length);
+    expect(x.allObservations.length).toBeGreaterThan(0);
+    await recordExport(s.sales, { diagnosticId: g.diagnosticId, versionId: x.versionId, format: "informe", bytes: informe });
+    expect((await pool().query("SELECT count(*)::int AS n FROM diagnostic_exports WHERE format='informe'")).rows[0].n).toBe(1);
     // read_only no exporta
     const ro = await mkActor("read_only");
     await expect(loadExportable(ro, g.diagnosticId)).rejects.toBeInstanceOf(ForbiddenError);

@@ -9,7 +9,7 @@ import { companySources, getCompany, listIndustries } from "@/lib/companies/serv
 import { findDoNotContact } from "@/lib/companies/exclusions";
 import { listUsers } from "@/lib/users";
 import { CLASSIFICATION_LABELS, STAGE_LABELS } from "@/lib/labels";
-import { adjustmentAction, analyzeAction, manualCriteriaAction, recomputeScoreAction, updateCompanyAction } from "../actions";
+import { adjustmentAction, analyzeAction, manualCriteriaAction, recomputeScoreAction, revalidateWebsiteAction, setWebsiteAction, updateCompanyAction } from "../actions";
 import { pool } from "@/lib/db";
 import { ScorePanel } from "@/components/score-panel";
 import { latestAdjustment, latestManual, latestScore, reproduceScore } from "@/lib/scoring/service";
@@ -19,6 +19,7 @@ import { buildFacts, type ObservationInput } from "@/lib/scoring/engine";
 import { can } from "@/lib/rbac";
 import { SignalsPanel } from "@/components/signals-panel";
 import { generateOneAction } from "@/app/diagnostics/actions";
+import { latestWebValidation } from "@/lib/companies/web";
 import { canAnalyze, latestCompletedRunId, listIndustrySignals, listRuns, observationsForRun, signalChanges } from "@/lib/analyzer/service";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
     companySources(id), listIndustries(), listUsers(), findDoNotContact({ name: company.legal_name, domain: company.domain, ruc: company.ruc }),
   ]);
   const runId = await latestCompletedRunId(id);
+  const webCheck = await latestWebValidation(id);
   const diag = (await pool().query<{ id: string }>(`SELECT id FROM diagnostics WHERE company_id = $1`, [id])).rows[0];
   const [runs, rows, changes, indSignals] = await Promise.all([listRuns(id, 5), runId ? observationsForRun(runId) : Promise.resolve([]), signalChanges(id), listIndustrySignals()]);
   const industryNames = Object.fromEntries(indSignals.map((x) => [`industry.${x.slug}`, x.name]));
@@ -95,11 +97,32 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
         {can(user.role, "diagnostics.write") && runId && !dnc && (
           <form action={generateOneAction} className="inline-form">
             <input type="hidden" name="companyId" value={company.id} />
-            <button className="btn btn-secondary btn-small" type="submit">Generar diagnóstico con IA</button>
+            <button className="btn btn-secondary btn-small" type="submit">Generar diagnóstico</button>
             {diag && <Link href={`/diagnostics/${diag.id}`}>Ver diagnóstico existente</Link>}
           </form>
         )}
-        {!company.domain && <p className="muted">La empresa no tiene sitio web conocido; no se puede analizar.</p>}
+        {!company.domain && <p className="muted">La empresa no tiene sitio web conocido; no se puede analizar hasta asignarle uno.</p>}
+        {editable && (
+          <form action={setWebsiteAction} className="card stack" aria-labelledby="web-title">
+            <h3 id="web-title">{company.domain ? "Corregir el sitio web" : "Agregar el sitio web"}</h3>
+            <p className="muted">Escribe la dirección y Radar comprueba que exista, que responda y qué permite su <code>robots.txt</code> antes de guardarla. No se aceptan redes sociales ni correos gratuitos.</p>
+            <input type="hidden" name="id" value={company.id} />
+            <div className="row">
+              <div><label htmlFor="website-new">Sitio web</label><input id="website-new" name="website" defaultValue={company.domain ?? ""} maxLength={300} placeholder="ejemplo.com.pe" required /></div>
+              <button className="btn btn-primary" type="submit">Validar y guardar</button>
+            </div>
+          </form>
+        )}
+        {webCheck && company.domain && (
+          <p className={webCheck.status === "ok" ? "" : "muted"} role="status">
+            Última comprobación ({fmt.format(webCheck.checked_at)}{webCheck.checked_by_email ? ` · ${webCheck.checked_by_email}` : ""}):{" "}
+            <span className={`badge ${webCheck.status === "ok" ? "badge-ok" : "badge-info"}`}>{webCheck.status === "ok" ? "Sitio verificado" : webCheck.status === "warning" ? "Con avisos" : "No verificado"}</span>{" "}
+            {(webCheck.detail.messages ?? []).join(" ")}
+          </p>
+        )}
+        {editable && company.domain && (
+          <form action={revalidateWebsiteAction}><input type="hidden" name="id" value={company.id} /><button className="btn btn-secondary btn-small" type="submit">Volver a comprobar el sitio</button></form>
+        )}
         {runs.length > 0 && (
           <ul className="muted">
             {runs.map((r) => <li key={r.id}>{fmt.format(r.started_at)} · {({ running: "en curso", completed: "completado", failed: "falló", skipped: "omitido" } as Record<string, string>)[r.status]} · {r.status === "skipped" ? r.skip_reason : r.status === "failed" ? r.error : `${r.pages_fetched} páginas · versión ${r.analyzer_version}`}</li>)}

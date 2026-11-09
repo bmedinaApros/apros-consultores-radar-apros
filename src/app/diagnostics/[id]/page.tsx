@@ -12,7 +12,7 @@ import { approveDiagnostic, editDiagnostic, getDiagnosticDetail, rejectDiagnosti
 
 export const dynamic = "force-dynamic";
 const fmt = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Lima" });
-const EVENT_LABEL: Record<string, string> = { created: "Creado", generated: "Generado", edited: "Editado", submitted: "Enviado a revisión", approved: "Aprobado", rejected: "Rechazado", exported_pdf: "PDF descargado", exported_pptx: "PPTX descargado" };
+const EVENT_LABEL: Record<string, string> = { created: "Creado", generated: "Generado", edited: "Editado", submitted: "Enviado a revisión", approved: "Aprobado", rejected: "Rechazado", exported_pdf: "PDF descargado", exported_pptx: "PPTX descargado", exported_informe: "Informe descargado" };
 
 const idSchema = z.string().uuid();
 
@@ -66,10 +66,11 @@ export default async function DiagnosticPage({ params, searchParams }: { params:
     <AppShell user={user} current="/diagnostics">
       <p><Link href="/diagnostics">← Diagnósticos</Link> · <Link href={`/companies/${g.company_id}`}>Ficha de la empresa</Link></p>
       <h1>{g.company_name}</h1>
-      <p className="muted">{g.company_domain} · {g.industry_name ?? "rubro por confirmar"} · versión {v.version} · {v.source === "simulated" ? "generado en modo simulado (solo demostración)" : v.source === "human_edit" ? "editado por una persona" : "generado con IA"}</p>
+      <p className="muted">{g.company_domain} · {g.industry_name ?? "rubro por confirmar"} · versión {v.version} · {v.source === "rules" ? "generado con plantillas y reglas (sin IA)" : v.source === "simulated" ? "texto de demostración (versión antigua)" : v.source === "human_edit" ? "editado por una persona" : "generado con IA"}</p>
       <Flash ok={q.ok} error={q.error} />
       <p><span className="badge badge-info">{STATUS_LABEL[g.status]}</span>{g.stale && <span className="badge badge-warn"> Desactualizado: {g.stale_reason}</span>}</p>
-      {v.source === "simulated" && <div className="note note-warn" role="note"><strong>Texto de demostración.</strong> No lo generó un modelo de IA real; sirve para probar el flujo con datos ficticios.</div>}
+      {v.source === "simulated" && <div className="note note-warn" role="note"><strong>Texto de demostración (versión antigua).</strong> No lo generó un modelo de IA; regenéralo con plantillas y reglas.</div>}
+      {v.source === "rules" && <div className="note" role="note">Generado con plantillas y reglas a partir de las señales observadas; no usa IA ni envía datos a terceros. Una persona debe revisarlo antes de descargarlo.</div>}
       {g.stale && <div className="note note-warn" role="note">La evidencia citada cambió desde que se generó el texto. Regenera el diagnóstico con el análisis más reciente antes de aprobarlo o descargarlo.</div>}
       {v.blocking_flags > 0 && <div className="note note-warn" role="alert"><strong>{v.blocking_flags} afirmaciones marcadas.</strong> Corrígelas (ver detalle abajo) para poder enviar a revisión y aprobar.</div>}
 
@@ -108,7 +109,7 @@ export default async function DiagnosticPage({ params, searchParams }: { params:
         <div className="row">
           {writer && g.status === "draft" && <form action={transition}><input type="hidden" name="id" value={g.id} /><button className="btn btn-primary" name="op" value="submit" type="submit">Enviar a revisión</button></form>}
           {approver && g.status === "in_review" && <form action={transition}><input type="hidden" name="id" value={g.id} /><button className="btn btn-primary" name="op" value="approve" type="submit">Aprobar</button></form>}
-          {exporter && <><a className="btn btn-secondary" href={`/api/diagnostics/${g.id}/export?format=pdf`}>Descargar PDF (1 página)</a><a className="btn btn-secondary" href={`/api/diagnostics/${g.id}/export?format=pptx`}>Descargar PPTX</a></>}
+          {exporter && <><a className="btn btn-primary" href={`/api/diagnostics/${g.id}/export?format=informe`}>Descargar informe (PDF)</a><a className="btn btn-secondary" href={`/api/diagnostics/${g.id}/export?format=pdf`}>Resumen de 1 página (PDF)</a><a className="btn btn-secondary" href={`/api/diagnostics/${g.id}/export?format=pptx`}>Descargar PPTX</a></>}
         </div>
         {approver && g.status === "in_review" && (
           <form action={transition} className="row"><input type="hidden" name="id" value={g.id} /><input type="hidden" name="op" value="reject" />

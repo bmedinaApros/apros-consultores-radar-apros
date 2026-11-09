@@ -4,7 +4,8 @@ import { ZodError } from "zod";
 import { numbersIn, sanitizeText, validateDiagnostic, type EvidenceObs, type ValidationContext } from "@/lib/diagnostics/validate";
 import { modelJsonSchema, type DiagnosticContent } from "@/lib/diagnostics/schema";
 import { buildSystemPrompt, buildUserMessage, compactValue, untrustedText, type GenerationContext, type PromptObservation } from "@/lib/diagnostics/prompt";
-import { AiCallError, AiRefusalError, anthropicProvider, simulatedProvider, type MessagesClient } from "@/lib/diagnostics/ai";
+import { AiCallError, AiRefusalError, anthropicProvider, type MessagesClient } from "@/lib/diagnostics/ai";
+import { buildRulesDiagnostic, rulesProvider } from "@/lib/diagnostics/rules";
 import { assertWithinBudget, BudgetError, DEFAULT_AI, estimateCost, priceFor, worstCaseCost } from "@/lib/diagnostics/budget";
 
 const obs = (id: string, signal: string, status: EvidenceObs["status"], value: Record<string, unknown> = {}, extra: Partial<EvidenceObs> = {}): EvidenceObs =>
@@ -212,7 +213,7 @@ describe("esquema para el modelo", () => {
   });
 });
 
-describe("proveedor simulado (sin IA)", () => {
+describe("diagnóstico por plantillas y reglas (sin IA)", () => {
   const sets: { name: string; observations: PromptObservation[] }[] = [
     { name: "sitio sin brechas", observations: [PO({ id: "1", signal: "seo.title", status: "observed", confidence: "high" })] },
     { name: "sin medición", observations: [PO()] },
@@ -224,17 +225,17 @@ describe("proveedor simulado (sin IA)", () => {
   ];
   it.each(sets)("su salida cumple el esquema y no genera marcas bloqueantes ($name)", async ({ observations }) => {
     const context = GC({ observations });
-    const out = await simulatedProvider().generate({ system: buildSystemPrompt("g"), user: buildUserMessage(context), schema: modelJsonSchema(), maxTokens: 1000, context });
+    const out = await rulesProvider().generate({ system: buildSystemPrompt("g"), user: buildUserMessage(context), schema: modelJsonSchema(), maxTokens: 1000, context });
     const ev = new Map(observations.map((o) => [o.id, { id: o.id, signal_code: o.signal, status: o.status, kind: o.kind, confidence: o.confidence, value: o.value, evidence_excerpt: o.excerpt, evidence_url: null } as EvidenceObs]));
     const r = validateDiagnostic(JSON.parse(out.text), { observations: ev, companyDomain: "acme.pe", serviceSlugs: new Set(["analitica-medicion", "seo-contenido", "web-ux-ui", "rendimiento-web", "cro-conversion", "automatizacion-whatsapp-crm", "herramientas-interactivas"]) });
     expect(r.flags.filter((f) => f.blocking)).toEqual([]);
     expect(r.content.opportunities.length).toBeLessThanOrEqual(3);
-    expect(out.model).toBe("simulado");
+    expect(out.model).toBe("reglas-v1");
   });
   it("es determinístico", async () => {
     const context = GC({ observations: sets[2]!.observations });
     const input = { system: "s", user: "u", schema: {}, maxTokens: 1, context };
-    expect((await simulatedProvider().generate(input)).text).toBe((await simulatedProvider().generate(input)).text);
+    expect((await rulesProvider().generate(input)).text).toBe((await rulesProvider().generate(input)).text);
   });
 });
 
@@ -300,5 +301,81 @@ describe("costo y presupuesto de IA", () => {
     expect(() => assertWithinBudget(s, { today: 0.8, month: 1 }, 0.3)).toThrow(/diario.*agotado.*se conserva/i);
     expect(() => assertWithinBudget(s, { today: 0, month: 9.9 }, 0.3)).toThrow(/mensual.*agotado/i);
     expect(() => assertWithinBudget({ ...s, enabled: false }, { today: 0, month: 0 }, 0)).toThrow(BudgetError);
+  });
+});
+
+describe("reglas del diagnóstico sin IA: rubro, prioridad y catálogo", () => {
+  const offers = ["analitica-medicion", "seo-contenido", "web-ux-ui", "rendimiento-web", "cro-conversion", "automatizacion-whatsapp-crm", "herramientas-interactivas"].map((slug) => ({ slug, name: slug }));
+  const many = [
+    PO({ id: "1" }), PO({ id: "2", signal: "conv.mobile_viewport" }), PO({ id: "3", signal: "seo.meta_description" }), PO({ id: "4", signal: "conv.form" }),
+    PO({ id: "5", signal: "conv.whatsapp" }), PO({ id: "6", signal: "perf.pagespeed", status: "observed", confidence: "high", value: { performanceScore: 42 } }),
+    PO({ id: "7", signal: "tech.tls", status: "observed", confidence: "high", value: { valid: false } }),
+  ];
+  const build = (industry: string | null, observations = many, o = offers) => buildRulesDiagnostic(GC({ company: { name: "Acme SAC", domain: "acme.pe", industry }, observations, offers: o }), new Date("2026-11-09T12:00:00Z"));
+
+  it("prioriza lo más importante y no repite un mismo servicio más de dos veces", () => {
+    const d = build("Inmobiliario");
+    expect(d.opportunities).toHaveLength(3);
+    expect(d.opportunities.map((o) => o.title)).toEqual(["Conexión segura del sitio", "Experiencia pensada para móvil", "Velocidad de carga en móvil"]);
+    expect(d.opportunities.map((o) => o.priority)).toEqual(["alta", "alta", "alta"]);
+    const slugs = d.opportunities.map((o) => o.serviceSlug);
+    for (const s of new Set(slugs)) expect(slugs.filter((x) => x === s).length).toBeLessThanOrEqual(2);
+    expect(d.nextStep).toContain("Conexión segura del sitio");
+  });
+
+  it("adapta el texto al rubro y usa un texto neutro si no hay rubro o no se conoce", () => {
+    const inmo = JSON.stringify(build("Inmobiliario"));
+    const salud = JSON.stringify(build("Salud"));
+    const none = JSON.stringify(build(null));
+    expect(inmo).toContain("un interesado en un proyecto");
+    expect(inmo).toContain("proyectos");
+    expect(salud).toContain("un paciente");
+    expect(salud).not.toContain("un interesado en un proyecto");
+    expect(none).toContain("un visitante");
+    expect(JSON.stringify(build("Rubro Inventado"))).toContain("un visitante");
+    expect(JSON.stringify(build("EDUCACIÓN"))).toContain("una familia o un estudiante"); // tildes y mayúsculas no importan
+  });
+
+  it("solo menciona servicios que existen en el catálogo vigente", () => {
+    expect(build("Salud", many, offers.filter((o) => o.slug !== "web-ux-ui")).opportunities.every((o) => o.serviceSlug !== "web-ux-ui")).toBe(true);
+    expect(build("Salud", many, []).opportunities.every((o) => o.serviceSlug === null)).toBe(true);
+  });
+
+  it("es determinístico, no inventa datos y cita solo observaciones que existen", () => {
+    expect(JSON.stringify(build("Salud"))).toBe(JSON.stringify(build("Salud")));
+    const ids = new Set(many.map((o) => o.id));
+    for (const o of build("Salud").opportunities) for (const e of o.evidence) expect(ids.has(e)).toBe(true);
+    expect(JSON.stringify(build("Salud"))).toContain("puntaje móvil de 42");
+  });
+
+  it("sin brechas no inventa oportunidades: propone validar prioridades como hipótesis", () => {
+    const d = build("Salud", [PO({ id: "1", signal: "seo.title", status: "observed", confidence: "high" })]);
+    expect(d.opportunities).toHaveLength(1);
+    expect(d.opportunities[0]).toMatchObject({ kind: "hipotesis", evidence: [] });
+  });
+
+  it("reglas nuevas: enlaces rotos, contenido antiguo y rastreadores de IA solo si la evidencia lo respalda", () => {
+    const broken = PO({ id: "1", signal: "seo.broken_links", status: "observed", confidence: "medium", value: { checked: 8, broken: 3 } });
+    const old = PO({ id: "2", signal: "tech.last_content", status: "observed", confidence: "medium", kind: "inferred", value: { date: "2022-05-10", copyrightYear: 2022 } });
+    const ai = PO({ id: "3", signal: "geo.ai_crawlers", status: "observed", confidence: "high", value: { blocked: "GPTBot, ClaudeBot" } });
+    const text = JSON.stringify(build("Retail", [broken, old]));
+    expect(text).toContain("3 enlaces internos no cargan");
+    expect(text).toContain("es de 2022");
+    expect(JSON.stringify(build("Retail", [ai]))).toContain("rastreadores de asistentes de IA");
+    // un mismo servicio no ocupa las tres plazas: de las tres reglas de SEO/contenido solo entran dos
+    expect(build("Retail", [broken, old, ai]).opportunities).toHaveLength(2);
+    // sin esos datos no aparecen
+    const calm = JSON.stringify(build("Retail", [PO({ id: "1", signal: "seo.broken_links", status: "observed", value: { checked: 8, broken: 0 } }), PO({ id: "2", signal: "tech.last_content", status: "observed", kind: "inferred", value: { date: "2026-10-01" } }), PO({ id: "3", signal: "geo.ai_crawlers", status: "observed", value: { blocked: "" } })]));
+    expect(calm).not.toContain("enlaces internos");
+    expect(calm).not.toContain("contenido más reciente");
+    expect(calm).not.toContain("asistentes de IA");
+  });
+
+  it("toda la salida pasa el validador de afirmaciones sin marcas bloqueantes", () => {
+    const evMap = new Map(many.map((o) => [o.id, { id: o.id, signal_code: o.signal, status: o.status, kind: o.kind, confidence: o.confidence, value: o.value, evidence_excerpt: o.excerpt, evidence_url: "https://acme.pe/" }]));
+    for (const industry of ["Inmobiliario", "Salud", "Educación", "Retail", "Industria", "Servicios profesionales", "Consumo masivo", null]) {
+      const r = validateDiagnostic(build(industry), { observations: evMap as never, companyDomain: "acme.pe", serviceSlugs: new Set(offers.map((o) => o.slug)) });
+      expect(r.flags.filter((f) => f.blocking), String(industry)).toEqual([]);
+    }
   });
 });
