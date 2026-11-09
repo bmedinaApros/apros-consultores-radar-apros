@@ -6,7 +6,7 @@ export const ownerPool = () =>
 export async function resetData() {
   const owner = ownerPool();
   await owner.query("ALTER TABLE audit_log DISABLE TRIGGER USER");
-  await owner.query("TRUNCATE diagnostic_templates, audit_log, sessions, users, companies, import_batches, do_not_contact, active_clients, discovery_runs, source_providers, analysis_runs, scoring_models, service_offers, app_settings, weekly_runs RESTART IDENTITY CASCADE");
+  await owner.query("TRUNCATE registry_batches, registry_companies, registry_locations, industry_keywords, diagnostic_templates, audit_log, sessions, users, companies, import_batches, do_not_contact, active_clients, discovery_runs, source_providers, analysis_runs, scoring_models, service_offers, app_settings, weekly_runs RESTART IDENTITY CASCADE");
   await owner.query("ALTER TABLE audit_log ENABLE TRIGGER USER");
   await owner.query("DELETE FROM industries WHERE NOT is_example");
   await owner.end();

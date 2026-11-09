@@ -6,3 +6,6 @@ coverage
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# Archivos del padrón (datos reales, no se suben al repositorio)
+data/

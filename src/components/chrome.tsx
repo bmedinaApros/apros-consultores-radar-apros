@@ -192,7 +192,7 @@ export function SideNav({ main, settings }: SideNavProps) {
   );
 }
 
-interface Hit { id: string; name: string; domain: string | null; ruc: string | null; industry: string | null; dnc: boolean }
+interface Hit { id: string; name: string; domain: string | null; ruc: string | null; industry: string | null; dnc: boolean; kind?: "company" | "registry" }
 
 /** Búsqueda global por RUC, razón social o dominio (patrón combobox accesible). Atajo: «/». */
 function GlobalSearch() {
@@ -239,7 +239,7 @@ function GlobalSearch() {
 
   const go = (h: Hit | undefined) => {
     setOpen(false);
-    router.push(h ? `/companies/${h.id}` : `/companies?q=${encodeURIComponent(term)}`);
+    router.push(h ? (h.kind === "registry" ? `/registry/${h.id}` : `/companies/${h.id}`) : `/registry?q=${encodeURIComponent(term)}`);
   };
   const shown = term.length >= 3 ? hits : [];
   const onKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -270,6 +270,7 @@ function GlobalSearch() {
             >
               <strong>{h.name}</strong>
               <span className="muted">{[h.ruc, h.domain, h.industry].filter(Boolean).join(" · ") || "sin datos"}</span>
+              {h.kind === "registry" && <span className="badge badge-info">En el padrón, aún no en la base</span>}
               {h.dnc && <span className="badge badge-off">No contactar</span>}
             </li>
           ))}
