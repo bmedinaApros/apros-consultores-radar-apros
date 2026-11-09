@@ -97,7 +97,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
         {can(user.role, "diagnostics.write") && runId && !dnc && (
           <form action={generateOneAction} className="inline-form">
             <input type="hidden" name="companyId" value={company.id} />
-            <button className="btn btn-secondary btn-small" type="submit">Generar diagnóstico con IA</button>
+            <button className="btn btn-secondary btn-small" type="submit">Generar diagnóstico</button>
             {diag && <Link href={`/diagnostics/${diag.id}`}>Ver diagnóstico existente</Link>}
           </form>
         )}
