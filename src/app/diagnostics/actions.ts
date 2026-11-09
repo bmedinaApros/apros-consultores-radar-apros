@@ -8,8 +8,8 @@ import { getAiSettings } from "@/lib/diagnostics/budget";
 import { resolveProvider } from "@/lib/diagnostics/ai";
 
 async function ensureReady(): Promise<void> {
-  if (!resolveProvider()) throw new DiagnosticError("La IA no está configurada. Define AI_PROVIDER (simulated para demostración, anthropic para real) y reinicia; ver README.");
-  if (!(await getAiSettings()).enabled) throw new DiagnosticError("La generación con IA está desactivada en Configuración de IA.");
+  resolveProvider(); // siempre hay generador: plantillas y reglas por defecto
+  if (!(await getAiSettings()).enabled) throw new DiagnosticError("La generación de diagnósticos está desactivada en Configuración → Diagnósticos: reglas e IA.");
 }
 
 /** Genera (en segundo plano) el diagnóstico de una empresa. Las comprobaciones previas se muestran de inmediato. */

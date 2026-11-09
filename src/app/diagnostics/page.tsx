@@ -33,7 +33,7 @@ export default async function DiagnosticsPage({ searchParams }: { searchParams: 
                 <td><Link href={`/diagnostics/${r.id}`}>{r.company_name}</Link><div className="muted">{r.company_domain}</div></td>
                 <td><span className={`badge ${STATUS_CLASS[r.status]}`}>{STATUS_LABEL[r.status]}</span>{r.stale && <span className="badge badge-warn"> Desactualizado</span>}</td>
                 <td>v{r.version}</td><td>{r.blocking_flags}</td>
-                <td>{r.source === "simulated" ? "Simulado (demostración)" : r.source === "human_edit" ? "Editado por una persona" : "IA"}</td>
+                <td>{r.source === "rules" ? "Plantillas y reglas" : r.source === "simulated" ? "Demostración (antiguo)" : r.source === "human_edit" ? "Editado por una persona" : "IA"}</td>
                 <td>{fmt.format(r.updated_at)}</td>
               </tr>
             ))}</tbody>

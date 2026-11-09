@@ -66,10 +66,11 @@ export default async function DiagnosticPage({ params, searchParams }: { params:
     <AppShell user={user} current="/diagnostics">
       <p><Link href="/diagnostics">← Diagnósticos</Link> · <Link href={`/companies/${g.company_id}`}>Ficha de la empresa</Link></p>
       <h1>{g.company_name}</h1>
-      <p className="muted">{g.company_domain} · {g.industry_name ?? "rubro por confirmar"} · versión {v.version} · {v.source === "simulated" ? "generado en modo simulado (solo demostración)" : v.source === "human_edit" ? "editado por una persona" : "generado con IA"}</p>
+      <p className="muted">{g.company_domain} · {g.industry_name ?? "rubro por confirmar"} · versión {v.version} · {v.source === "rules" ? "generado con plantillas y reglas (sin IA)" : v.source === "simulated" ? "texto de demostración (versión antigua)" : v.source === "human_edit" ? "editado por una persona" : "generado con IA"}</p>
       <Flash ok={q.ok} error={q.error} />
       <p><span className="badge badge-info">{STATUS_LABEL[g.status]}</span>{g.stale && <span className="badge badge-warn"> Desactualizado: {g.stale_reason}</span>}</p>
-      {v.source === "simulated" && <div className="note note-warn" role="note"><strong>Texto de demostración.</strong> No lo generó un modelo de IA real; sirve para probar el flujo con datos ficticios.</div>}
+      {v.source === "simulated" && <div className="note note-warn" role="note"><strong>Texto de demostración (versión antigua).</strong> No lo generó un modelo de IA; regenéralo con plantillas y reglas.</div>}
+      {v.source === "rules" && <div className="note" role="note">Generado con plantillas y reglas a partir de las señales observadas; no usa IA ni envía datos a terceros. Una persona debe revisarlo antes de descargarlo.</div>}
       {g.stale && <div className="note note-warn" role="note">La evidencia citada cambió desde que se generó el texto. Regenera el diagnóstico con el análisis más reciente antes de aprobarlo o descargarlo.</div>}
       {v.blocking_flags > 0 && <div className="note note-warn" role="alert"><strong>{v.blocking_flags} afirmaciones marcadas.</strong> Corrígelas (ver detalle abajo) para poder enviar a revisión y aprobar.</div>}
 

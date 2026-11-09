@@ -8,7 +8,8 @@ import {
   approveDiagnostic, DiagnosticError, editDiagnostic, generateDiagnostic, getDiagnosticDetail, getTemplate, listDiagnostics,
   loadExportable, recordExport, rejectDiagnostic, saveTemplate, submitForReview,
 } from "@/lib/diagnostics/service";
-import { simulatedProvider, AiRefusalError, type AiProvider } from "@/lib/diagnostics/ai";
+import { AiRefusalError, type AiProvider } from "@/lib/diagnostics/ai";
+import { rulesProvider } from "@/lib/diagnostics/rules";
 import { getAiSettings, saveAiSettings, DEFAULT_AI, BudgetError } from "@/lib/diagnostics/budget";
 import { renderPdf } from "@/lib/diagnostics/export-pdf";
 import { renderPptx } from "@/lib/diagnostics/export-pptx";
@@ -30,7 +31,7 @@ async function setup(html = POOR) {
   await scoreCompany(id);
   return { admin, consultant, lead, sales, id, sites, deps: mk.deps };
 }
-const sim = simulatedProvider();
+const sim = rulesProvider();
 
 describe("generación", () => {
   it("genera un borrador validado, con versión, evento, registro de la llamada y sin marcas bloqueantes", async () => {
@@ -41,7 +42,7 @@ describe("generación", () => {
     const d = (await getDiagnosticDetail(lead, r.diagnosticId))!;
     expect(d.diagnostic.status).toBe("draft");
     expect(d.version.content.opportunities.length).toBeGreaterThan(0);
-    expect(d.generations[0]).toMatchObject({ provider: "simulated", status: "ok" });
+    expect(d.generations[0]).toMatchObject({ provider: "rules", status: "ok" });
     expect(d.events.map((e) => e.action)).toEqual(expect.arrayContaining(["created", "generated"]));
   });
 
