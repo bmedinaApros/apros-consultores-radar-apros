@@ -9,3 +9,5 @@ next-env.d.ts
 
 # Archivos del padrón (datos reales, no se suben al repositorio)
 data/
+.next-share
+.next-local

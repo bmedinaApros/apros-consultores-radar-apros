@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   output: "standalone",
+  // La instancia compartida (npm run share) usa su propia carpeta de compilación para poder correr junto a la personal.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   serverExternalPackages: ["pdfkit", "pptxgenjs"],
   // pdfkit lee sus métricas de fuentes (.afm) del disco; hay que incluirlas en la salida standalone
   // Nada de datos ni de código de desarrollo en la salida de producción (la carpeta data/ puede tener el padrón, de más de 1 GB).

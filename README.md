@@ -150,3 +150,6 @@ assets/brand     Logotipos oficiales (no modificar)
 ## Marca
 
 Los tokens de diseño están en `src/app/globals.css` y derivan de `docs/brand/design.md`. Falta el isotipo solo; no se usa hasta recibirlo. Las fuentes (Questrial y Roboto) se sirven localmente desde `@fontsource` (licencias SIL OFL y Apache 2.0).
+
+## Uso personal y compartido
+Ver `docs/USO-EN-RED.md` (acceso directo en tu Mac y acceso por red con usuario y clave para otras personas).
