@@ -14,7 +14,8 @@ export const ALLOWED_EXT = [".txt", ".csv", ".zip", ".gz"] as const;
 export const MAX_UNCOMPRESSED_BYTES = 30 * 1024 ** 3;
 const MAX_LINE = 16 * 1024;
 
-export const importDir = (): string => path.resolve(process.env.REGISTRY_IMPORT_DIR || "data/import");
+// La carpeta se resuelve en tiempo de ejecución (no es parte del código): se marca para que el empaquetado no rastree el proyecto entero.
+export const importDir = (): string => path.resolve(/*turbopackIgnore: true*/ process.env.REGISTRY_IMPORT_DIR || "data/import");
 
 export interface ImportFile { name: string; size: number; modified: Date }
 
@@ -24,7 +25,7 @@ export async function listImportFiles(dir = importDir()): Promise<ImportFile[]> 
   const out: ImportFile[] = [];
   for (const name of names) {
     if (!ALLOWED_EXT.includes(path.extname(name).toLowerCase() as (typeof ALLOWED_EXT)[number]) || name.startsWith(".")) continue;
-    const st = await fs.stat(path.join(dir, name)).catch(() => null);
+    const st = await fs.stat(path.join(/*turbopackIgnore: true*/ dir, name)).catch(() => null);
     if (st?.isFile()) out.push({ name, size: st.size, modified: st.mtime });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
@@ -38,7 +39,7 @@ export async function resolveImportFile(name: string, dir = importDir()): Promis
   if (!name || name !== path.basename(name) || name.startsWith(".") || name.includes("\0")) throw new SourceFileError("Nombre de archivo no permitido");
   if (!ALLOWED_EXT.includes(path.extname(name).toLowerCase() as (typeof ALLOWED_EXT)[number])) throw new SourceFileError("Solo se aceptan archivos .txt, .csv, .zip o .gz");
   const base = await fs.realpath(dir).catch(() => { throw new SourceFileError("La carpeta de importación no existe"); });
-  const real = await fs.realpath(path.join(base, name)).catch(() => { throw new SourceFileError("No se encontró el archivo en la carpeta de importación"); });
+  const real = await fs.realpath(path.join(/*turbopackIgnore: true*/ base, name)).catch(() => { throw new SourceFileError("No se encontró el archivo en la carpeta de importación"); });
   if (path.dirname(real) !== base) throw new SourceFileError("El archivo debe estar directamente en la carpeta de importación");
   if (!(await fs.stat(real)).isFile()) throw new SourceFileError("No es un archivo");
   return real;
