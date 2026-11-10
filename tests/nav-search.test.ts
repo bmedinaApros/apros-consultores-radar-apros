@@ -44,7 +44,7 @@ describe("menú por tareas", () => {
     expect(settings("sales_lead")).toEqual(["No contactar", "Auditoría"]);
     expect(more("sales_lead")).not.toContain("Fuentes");
     for (const r of ["consultant", "salesperson", "read_only"] as const) expect(settings(r)).toBeNull();
-    expect(more("read_only")).toEqual(["Empresas de la base", "Diagnósticos", "Lista semanal", "Bandeja de revisión"]);
+    expect(more("read_only")).toEqual(["Empresas de la base", "Sitios por confirmar", "Diagnósticos", "Lista semanal", "Bandeja de revisión"]);
     expect(more("salesperson")).not.toContain("Duplicados");
   });
 

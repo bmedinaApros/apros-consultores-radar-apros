@@ -162,8 +162,8 @@ export async function discoverWebsiteAction(formData: FormData): Promise<void> {
 
 export async function acceptCandidateAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const d = z.object({ id: z.string().uuid(), candidateId: z.string().uuid() }).parse(Object.fromEntries(formData));
-  return guarded(`/companies/${d.id}`, async () => {
+  const d = z.object({ id: z.string().uuid(), candidateId: z.string().uuid(), back: z.literal("list").optional() }).parse(Object.fromEntries(formData));
+  return guarded(d.back === "list" ? "/companies/websites" : `/companies/${d.id}`, async () => {
     await acceptCandidate(toActor(user), d.candidateId);
     return "Sitio web confirmado.";
   });
@@ -171,8 +171,8 @@ export async function acceptCandidateAction(formData: FormData): Promise<void> {
 
 export async function rejectCandidateAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const d = z.object({ id: z.string().uuid(), candidateId: z.string().uuid() }).parse(Object.fromEntries(formData));
-  return guarded(`/companies/${d.id}`, async () => {
+  const d = z.object({ id: z.string().uuid(), candidateId: z.string().uuid(), back: z.literal("list").optional() }).parse(Object.fromEntries(formData));
+  return guarded(d.back === "list" ? "/companies/websites" : `/companies/${d.id}`, async () => {
     await rejectCandidate(toActor(user), d.candidateId);
     return "Sugerencia descartada.";
   });
@@ -189,6 +189,6 @@ export async function discoverBatchAction(): Promise<void> {
     for (const c of list) {
       try { const r = await discoverWebsite(c.id); if (r.assigned) assigned++; pending += r.pending.length; } catch { /* sigue con la siguiente */ }
     }
-    return list.length === 0 ? "No hay empresas sin sitio web por buscar." : `Se buscó el sitio de ${list.length} empresas: ${assigned} asignados solos y ${pending} sugerencias por confirmar.`;
+    return list.length === 0 ? "No hay empresas sin sitio web por buscar." : `Se buscó el sitio de ${list.length} empresas: ${assigned} asignados solos y ${pending} sugerencias por confirmar. Revísalas en «Más → Sitios por confirmar».`;
   });
 }

@@ -3,7 +3,7 @@ import { COMMON_SIGNALS } from "../analyzer/observations";
 import { enqueueWeeklyRun } from "../jobs/queue";
 import { getWeeklySettings } from "../weekly/settings";
 import { latestList, listItems, getList, reviewCounts } from "../weekly/service";
-import { proposeWebsite } from "../companies/discover-web";
+import { listAllPendingCandidates, proposeWebsite, websiteStats } from "../companies/discover-web";
 import { getCompany, listCompanies } from "../companies/service";
 import { parseQuickQuery } from "../registry/quick";
 import { getRegistryCompany, registryStats, searchRegistry } from "../registry/service";
@@ -144,6 +144,23 @@ export async function estadoSemana() {
     ultimas_corridas: runs.map((r) => ({
       id: r.id, estado: r.status, disparo: r.trigger_kind === "schedule" ? "programada" : "manual", inicio: r.started_at, fin: r.finished_at, parcial: r.partial, error: clip(r.error, 200),
       resumen: { sitios_buscados: (r.stats as { websites?: unknown }).websites ?? null, candidatas: r.stats.candidates ?? null, analizadas: r.stats.analyzed ?? null, puntuadas: r.stats.scored ?? null, elegibles: r.stats.eligible ?? null },
+    })),
+  };
+}
+
+/** Sitios web encontrados que esperan confirmación humana, con el motivo de cada coincidencia. */
+export async function verSitiosPorConfirmar(limite?: number) {
+  const { rows, total } = await listAllPendingCandidates(clamp(limite, 1, 100, 50), 0);
+  const st = await websiteStats();
+  const WHY = { alta: "el RUC de la empresa aparece en la portada", media: "el nombre de la empresa aparece en el título de la página", baja: "coincidencia débil" } as const;
+  return {
+    aviso: DATA_NOTICE,
+    resumen: { empresas_intentadas: st.intentadas, con_sitio_asignado: st.asignadas, por_confirmar: st.por_confirmar, siguen_sin_sitio: st.sin_sitio, ultimo_intento: st.ultimo_intento },
+    nota: "Confirmar o descartar lo decide una persona en Radar (Más → Sitios por confirmar). Tú puedes revisar cada sitio y recomendar.",
+    mostrando: rows.length, total,
+    sugerencias: rows.map((r) => ({
+      empresa_id: r.company_id, empresa: r.legal_name, ruc: r.ruc, ciudad: r.city, sitio_sugerido: `https://${r.domain}`, coincidencia: r.confidence, motivo: WHY[r.confidence],
+      titulo_de_la_pagina: clip(r.evidence.title ?? null, 160), origen: r.source === "ia" ? "Comité IA" : "búsqueda automática", encontrado: r.created_at,
     })),
   };
 }

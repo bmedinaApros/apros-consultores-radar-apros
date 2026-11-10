@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { ejecutarSemana, estadoSemana, proponerSitioWeb, verListaSemanal } from "./tools";
+import { verSitiosPorConfirmar, ejecutarSemana, estadoSemana, proponerSitioWeb, verListaSemanal } from "./tools";
 import { buscarEmpresasBase, buscarPadron, estadoPadron, verDiagnostico, verEmpresa, verEmpresaPadron } from "./tools";
 
 const text = (data: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] });
@@ -30,6 +30,10 @@ export function createRadarServer(): McpServer {
     inputSchema: { empresa_id: z.string().uuid(), url: z.string().min(4).max(300) },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   }, async (a) => text(await proponerSitioWeb(a.empresa_id, a.url)));
+  s.registerTool("ver_sitios_por_confirmar", {
+    description: "Sitios web que Radar encontró para empresas sin web y que esperan confirmación humana: empresa, RUC, sitio sugerido, nivel y motivo de la coincidencia, título de la página y origen, más un resumen de la búsqueda automática (intentadas, asignadas, por confirmar, sin sitio).",
+    inputSchema: { limite: z.number().int().min(1).max(100).optional() }, annotations: RO,
+  }, async (a) => text(await verSitiosPorConfirmar(a.limite)));
   s.registerTool("ver_lista_semanal", {
     description: "La lista semanal de empresas priorizadas para contactar (la más reciente por defecto): puntaje, prioridad, sitio, rubro, servicios sugeridos y motivos. Las «pendientes» aún no las aprobó una persona del equipo.",
     inputSchema: { lista_id: z.string().uuid().optional(), revision: z.enum(["pendientes", "aprobadas", "todas"]).optional(), limite: z.number().int().min(1).max(50).optional() }, annotations: RO,

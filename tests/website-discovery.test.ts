@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { pool } from "@/lib/db";
 import { createCompany, getCompany } from "@/lib/companies/service";
-import { acceptCandidate, companiesNeedingWebsite, discoverWebsite, domainCandidates, listPendingCandidates, matchEvidence, nameTokens, proposeWebsite, rejectCandidate } from "@/lib/companies/discover-web";
+import { acceptCandidate, companiesNeedingWebsite, discoverWebsite, domainCandidates, listAllPendingCandidates, listPendingCandidates, websiteStats, matchEvidence, nameTokens, proposeWebsite, rejectCandidate } from "@/lib/companies/discover-web";
 import type { WebDeps } from "@/lib/companies/web";
 import type { Fetcher } from "@/lib/analyzer/safe-fetch";
 import * as F from "./fixtures/sites";
@@ -106,5 +106,25 @@ describe("propuesta externa (Comité IA)", () => {
     expect((await getCompany(c.id))!.domain).toBeNull();
     expect((await proposeWebsite(c.id, "https://www.ruc.example.com/contacto", "ia", d)).status).toBe("assigned");
     expect((await getCompany(c.id))!.domain).toBe("ruc.example.com");
+  });
+});
+
+describe("vista de sitios por confirmar", () => {
+  it("junta las sugerencias de todas las empresas, con el resumen, y deja de listar las resueltas", async () => {
+    const a = await mkActor("sales_lead");
+    const c1 = await createCompany(a, { legal_name: "Marmoles Andinos S.A.C.", industry: "Industria" } as never);
+    const c2 = await createCompany(a, { legal_name: "Cementos Norte S.A.C.", industry: "Industria" } as never);
+    const c3 = await createCompany(a, { legal_name: "Sin Rastro S.A.C.", industry: "Industria" } as never);
+    const { deps: d } = deps({ "marmolesandinos.com.pe": page("Mármoles Andinos"), "cementosnorte.com.pe": page("Cementos Norte | Lima") });
+    for (const c of [c1, c2, c3]) await discoverWebsite(c.id, d);
+    const st = await websiteStats();
+    expect(st).toMatchObject({ intentadas: 3, por_confirmar: 2, asignadas: 0, sin_sitio: 3, con_sitio: 0 });
+    const all = await listAllPendingCandidates();
+    expect(all.total).toBe(2);
+    expect(all.rows.map((r) => r.legal_name).sort()).toEqual(["Cementos Norte S.A.C.", "Marmoles Andinos S.A.C."]);
+    expect(all.rows[0]).toMatchObject({ confidence: "media", source: "auto" });
+    await acceptCandidate(a, all.rows[0]!.id, d);
+    expect((await listAllPendingCandidates()).total).toBe(1);
+    expect(await websiteStats()).toMatchObject({ por_confirmar: 1, asignadas: 1, con_sitio: 1 });
   });
 });

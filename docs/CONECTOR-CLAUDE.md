@@ -14,6 +14,7 @@ Permite que Claude (la conversación «APROS – Comité IA» en la app de escri
 | `ver_lista_semanal` | La lista semanal de empresas priorizadas (puntaje, servicios sugeridos, motivos, estado de revisión). Por defecto la última, hasta 50 |
 | `estado_semana` | Cómo van las últimas corridas, cuántas hay en cola y cómo está programada |
 | `ejecutar_semana` | **Escribe (acotado):** deja una corrida en cola ahora. La ejecuta el worker; no espera ni contacta a nadie |
+| `ver_sitios_por_confirmar` | Sitios web que Radar encontró y esperan confirmación humana, con motivo de la coincidencia y un resumen de la búsqueda automática |
 | `proponer_sitio_web` | **Única que escribe.** Propone el sitio de una empresa sin web. Radar lo valida (responde, permite lectura, muestra el nombre o RUC); con el RUC en la portada se asigna, si no queda pendiente de confirmación humana |
 
 ## Qué NO expone
