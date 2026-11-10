@@ -5,7 +5,13 @@ set -u
 cd "$(dirname "$0")/.."
 
 if [ "${SKIP_DOCKER:-}" != "1" ]; then
-  if ! docker info >/dev/null 2>&1; then echo "Docker no está abierto. Ábrelo (Docker Desktop) y vuelve a ejecutar este comando."; exit 1; fi
+  if ! docker info >/dev/null 2>&1; then
+    # Si Docker Desktop está cerrado, se abre solo y se espera hasta 3 minutos a que esté listo (útil al iniciar sesión en la Mac).
+    command -v open >/dev/null && open -a Docker 2>/dev/null
+    echo "Esperando a Docker Desktop..."
+    for _ in $(seq 1 90); do docker info >/dev/null 2>&1 && break; sleep 2; done
+    docker info >/dev/null 2>&1 || { echo "Docker no arrancó. Ábrelo (Docker Desktop) y vuelve a ejecutar este comando."; exit 1; }
+  fi
   docker compose up -d db >/dev/null
   echo "Base de datos lista."
 fi

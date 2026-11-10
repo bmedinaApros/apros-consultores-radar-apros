@@ -13,6 +13,12 @@ npm run iniciar
 ```
 Levanta la base de datos, el worker (la lista de los lunes 8:30), la versión personal (puerto 3000) y la compartida (puerto 3001), evita que la Mac se duerma y muestra la dirección para tus compañeros. `Ctrl + C` detiene todo. Requiere Docker Desktop abierto.
 
+## Que se levante solo al iniciar sesión (macOS)
+```bash
+npm run autoarranque -- instalar
+```
+Desde el siguiente inicio de sesión en la Mac, Radar APROS se levanta solo (abre Docker Desktop si estaba cerrado, y arranca base, worker y las dos versiones). Registro en `~/Library/Logs/radar-apros.log`. Para quitarlo: `npm run autoarranque -- quitar`; para ver si está activo: `npm run autoarranque -- estado`. Funciona con la Mac encendida y tu sesión iniciada; no corre con la pantalla de inicio de sesión sin entrar.
+
 ## Pasos (manual)
 1. En `.env` agrega `LOCAL_MODE=true` (solo para tu uso personal; la app se niega a arrancar así en producción).
 2. Con Docker abierto: `docker compose up -d db`, luego `npm run dev` en una ventana y `npm run share` en otra.
