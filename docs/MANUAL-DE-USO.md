@@ -79,7 +79,7 @@ Fuentes de empresas disponibles. Todas están desactivadas por defecto y solo se
 
 ## 5. Otras funciones
 - **Búsqueda global** (caja de arriba, atajo `/`): busca empresas, RUC o dominios desde cualquier pantalla.
-- **Colapsar menú:** botón al pie del menú, o `Cmd + B`.
+- **Colapsar menú:** flecha junto al logo de APROS (arriba del menú), o `Cmd + B`. Colapsado, solo queda la flecha para volver a abrirlo.
 - **Menú de cuenta** (arriba a la derecha): cambiar tu clave y cerrar sesión.
 - **Conector de Claude:** permite que la conversación «APROS – Comité IA» consulte Radar (solo lectura). Ver `docs/CONECTOR-CLAUDE.md`.
 - **Usar desde otros equipos** mientras tu Mac está prendida: ver `docs/USO-EN-RED.md`.
