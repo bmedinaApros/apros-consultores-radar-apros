@@ -37,7 +37,7 @@ El catálogo de **Servicios de APROS** es un ejemplo editable. Cada servicio tie
 
 ## Ejecución semanal
 
-Programada (por defecto lunes 06:00, hora de Lima) o manual. Una a la vez. Cada etapa es idempotente:
+Programada (por defecto lunes 08:30, hora de Lima) o manual. Una a la vez. Cada etapa es idempotente:
 
 1. **Descubrimiento** con las fuentes activas (cada una falla por separado).
 2. **Análisis** de empresas con sitio, sin bloqueo y sin análisis vigente, con **presupuesto** de sitios por ejecución. Primero las nunca analizadas.

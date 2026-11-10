@@ -1,5 +1,8 @@
 import { pool } from "../db";
 import { COMMON_SIGNALS } from "../analyzer/observations";
+import { enqueueWeeklyRun } from "../jobs/queue";
+import { getWeeklySettings } from "../weekly/settings";
+import { latestList, listItems, getList, reviewCounts } from "../weekly/service";
 import { proposeWebsite } from "../companies/discover-web";
 import { getCompany, listCompanies } from "../companies/service";
 import { parseQuickQuery } from "../registry/quick";
@@ -94,4 +97,53 @@ export async function verDiagnostico(empresaId: string) {
 /** Única herramienta que escribe: propone un sitio web (validado por Radar; sin evidencia suficiente, queda para confirmación humana). */
 export async function proponerSitioWeb(empresaId: string, url: string) {
   return proposeWebsite(empresaId, url, "ia");
+}
+
+// ---------- Lista semanal ----------
+
+const MCP_READER = { id: "00000000-0000-0000-0000-000000000000", role: "admin" as const };
+
+/** La lista semanal (la última por defecto): empresas priorizadas con puntaje, servicios sugeridos y motivos. */
+export async function verListaSemanal(a: { listaId?: string; revision?: "pendientes" | "aprobadas" | "todas"; limite?: number }) {
+  const list = a.listaId ? await getList(a.listaId) : await latestList();
+  if (!list) return null;
+  const review = a.revision === "pendientes" ? "pending_review" : a.revision === "aprobadas" ? "approved" : undefined;
+  const items = (await listItems(MCP_READER, list.id, { review })).slice(0, clamp(a.limite, 1, 50, 50));
+  const counts = await reviewCounts(list.id);
+  return {
+    aviso: DATA_NOTICE,
+    lista: { id: list.id, semana: list.week_start, creada: list.created_at, total: list.total_items, cobertura_parcial: list.partial, motivos_parciales: list.budget.partialReasons, excluidas: list.excluded, revision: counts },
+    nota: "Estas empresas aún las revisa una persona del equipo antes de contactarlas; las «pendientes» no están aprobadas.",
+    empresas: items.map((i) => ({
+      posicion: i.rank, empresa: i.company_name, empresa_id: i.company_id, sitio_web: i.company_domain, rubro: i.industry_name, ciudad: i.city, puntaje: Number(i.score),
+      prioridad: i.band === "sales" ? "ventas" : "nutrir", servicios_sugeridos: i.services.map((s) => ({ servicio: s.name, por_que: s.reasons.slice(0, 2).map((r) => clip(r.rationale, 160)) })),
+      motivos: i.reasons.slice(0, 4).map((r) => clip(r, 200)), revision: i.review_status === "approved" ? "aprobada" : i.review_status === "rejected" ? "descartada" : "pendiente",
+    })),
+  };
+}
+
+/** Deja la corrida semanal en cola. La ejecuta el worker; esta consulta no espera a que termine. */
+export async function ejecutarSemana() {
+  const running = await pool().query(`SELECT 1 FROM weekly_runs WHERE status = 'running' AND started_at > now() - interval '6 hours'`);
+  if (running.rowCount) return { encolada: false, mensaje: "Ya hay una corrida en curso. Consulta su avance con estado_semana." };
+  const id = await enqueueWeeklyRun({ triggeredBy: null, kind: "manual" });
+  return id
+    ? { encolada: true, mensaje: "Corrida en cola. La toma el worker (npm run worker debe estar activo en la Mac); tarda varios minutos. Consulta estado_semana y luego ver_lista_semanal." }
+    : { encolada: false, mensaje: "Ya había una corrida en cola; no se duplicó." };
+}
+
+/** Estado de las últimas corridas y de la programación. */
+export async function estadoSemana() {
+  const s = await getWeeklySettings();
+  const runs = (await pool().query<{ id: string; status: string; trigger_kind: string; started_at: Date; finished_at: Date | null; partial: boolean; error: string | null; stats: Record<string, unknown> }>(
+    `SELECT id, status, trigger_kind, started_at, finished_at, partial, error, stats FROM weekly_runs ORDER BY started_at DESC LIMIT 3`)).rows;
+  const queued = await pool().query<{ n: string }>(`SELECT count(*) AS n FROM pgboss.job WHERE name = 'weekly-run' AND state IN ('created', 'retry')`).then((r) => Number(r.rows[0]!.n)).catch(() => null);
+  return {
+    programacion: { activa: s.scheduleEnabled, cron_hora_lima: s.cron, tamano_de_lista: s.listSize },
+    en_cola: queued,
+    ultimas_corridas: runs.map((r) => ({
+      id: r.id, estado: r.status, disparo: r.trigger_kind === "schedule" ? "programada" : "manual", inicio: r.started_at, fin: r.finished_at, parcial: r.partial, error: clip(r.error, 200),
+      resumen: { sitios_buscados: (r.stats as { websites?: unknown }).websites ?? null, candidatas: r.stats.candidates ?? null, analizadas: r.stats.analyzed ?? null, puntuadas: r.stats.scored ?? null, elegibles: r.stats.eligible ?? null },
+    })),
+  };
 }

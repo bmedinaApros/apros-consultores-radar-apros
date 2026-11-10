@@ -17,7 +17,7 @@ export const weeklySettingsSchema = z.object({
   /** Máximo de consultas a PageSpeed por ejecución (0 = sin PageSpeed). */
   pagespeedBudget: z.number().int().min(0).max(500),
   scheduleEnabled: z.boolean(),
-  /** Expresión cron en hora de Lima. Por defecto, lunes 06:00. */
+  /** Expresión cron en hora de Lima. Por defecto, lunes 08:30. */
   cron: z.string().regex(/^[\d*/,\- ]{5,40}$/),
   /** Cuántas semanas se evita repetir una empresa, salvo que cambie una señal relevante. 0 = nunca repetir. */
   noveltyWeeks: z.number().int().min(0).max(520),
@@ -27,7 +27,7 @@ export type WeeklySettings = z.infer<typeof weeklySettingsSchema>;
 
 export const DEFAULT_WEEKLY: WeeklySettings = {
   listSize: 50, minScore: 50, minCoverage: 0.4, analysisBudget: 60, reanalyzeAfterDays: 30, pagespeedBudget: 0,
-  scheduleEnabled: true, cron: "0 6 * * 1", noveltyWeeks: 0,
+  scheduleEnabled: true, cron: "30 8 * * 1", noveltyWeeks: 0,
 };
 
 export async function getWeeklySettings(): Promise<WeeklySettings> {
