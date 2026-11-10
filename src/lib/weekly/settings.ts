@@ -26,7 +26,7 @@ export const weeklySettingsSchema = z.object({
 export type WeeklySettings = z.infer<typeof weeklySettingsSchema>;
 
 export const DEFAULT_WEEKLY: WeeklySettings = {
-  listSize: 30, minScore: 50, minCoverage: 0.4, analysisBudget: 60, reanalyzeAfterDays: 30, pagespeedBudget: 0,
+  listSize: 50, minScore: 50, minCoverage: 0.4, analysisBudget: 60, reanalyzeAfterDays: 30, pagespeedBudget: 0,
   scheduleEnabled: true, cron: "0 6 * * 1", noveltyWeeks: 0,
 };
 

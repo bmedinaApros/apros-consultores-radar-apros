@@ -5,10 +5,11 @@ import { z } from "zod";
 import { guarded, toActor } from "@/lib/actor";
 import { requireUser } from "@/lib/current-user";
 import { createCompany, PossibleDuplicateError, updateCompany, classifyCompany, getCompany, CompanyError } from "@/lib/companies/service";
-import { ForbiddenError } from "@/lib/rbac";
+import { can, ForbiddenError } from "@/lib/rbac";
 import { canAnalyze } from "@/lib/analyzer/service";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { enqueueAnalysis } from "@/lib/jobs/queue";
+import { acceptCandidate, companiesNeedingWebsite, discoverWebsite, rejectCandidate } from "@/lib/companies/discover-web";
 import { revalidateCompanyWebsite, setCompanyWebsite } from "@/lib/companies/web";
 
 const str = z.string().max(300).optional().default("");
@@ -123,6 +124,7 @@ export async function recomputeScoreAction(formData: FormData): Promise<void> {
 }
 
 const webLimiter = createRateLimiter(60, 60 * 60 * 1000);
+const batchLimiter = createRateLimiter(6, 60 * 60 * 1000);
 
 /** Ingreso rápido del sitio web: valida (DNS, robots, portada) y, si el dominio es consultable, lo asigna. */
 export async function setWebsiteAction(formData: FormData): Promise<void> {
@@ -142,5 +144,51 @@ export async function revalidateWebsiteAction(formData: FormData): Promise<void>
     if (!webLimiter.check(user.userId).allowed) throw new CompanyError("Demasiadas comprobaciones de sitios web; intenta más tarde");
     const r = await revalidateCompanyWebsite(toActor(user), id);
     return `Sitio comprobado: ${r.messages.join(" ")}`;
+  });
+}
+
+export async function discoverWebsiteAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = z.string().uuid().parse(formData.get("id"));
+  return guarded(`/companies/${id}`, async () => {
+    if (!webLimiter.check(user.userId).allowed) throw new CompanyError("Demasiadas búsquedas de sitios web; intenta más tarde");
+    const r = await discoverWebsite(id);
+    if (r.skipped) return `No se buscó: ${r.skipped}.`;
+    if (r.assigned) return `Sitio encontrado y asignado: ${r.assigned} (el RUC de la empresa aparece en su portada).`;
+    if (r.pending.length) return `Se encontró ${r.pending.length === 1 ? "un posible sitio" : `${r.pending.length} posibles sitios`}: confírmalo${r.pending.length === 1 ? "" : "s"} abajo.`;
+    return `Se probaron ${r.tried} direcciones y ninguna parece ser de la empresa. Escríbelo a mano si lo conoces.`;
+  });
+}
+
+export async function acceptCandidateAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const d = z.object({ id: z.string().uuid(), candidateId: z.string().uuid() }).parse(Object.fromEntries(formData));
+  return guarded(`/companies/${d.id}`, async () => {
+    await acceptCandidate(toActor(user), d.candidateId);
+    return "Sitio web confirmado.";
+  });
+}
+
+export async function rejectCandidateAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const d = z.object({ id: z.string().uuid(), candidateId: z.string().uuid() }).parse(Object.fromEntries(formData));
+  return guarded(`/companies/${d.id}`, async () => {
+    await rejectCandidate(toActor(user), d.candidateId);
+    return "Sugerencia descartada.";
+  });
+}
+
+/** Busca el sitio de un lote de empresas sin web (las que nunca se intentaron o se intentaron hace más de 30 días). */
+export async function discoverBatchAction(): Promise<void> {
+  const user = await requireUser();
+  return guarded("/companies?noWeb=1", async () => {
+    if (!can(user.role, "companies.write")) throw new ForbiddenError("No tienes permiso para modificar empresas");
+    if (!batchLimiter.check(user.userId).allowed) throw new CompanyError("Ya buscaste sitios web hace poco; intenta más tarde");
+    const list = await companiesNeedingWebsite(20);
+    let assigned = 0, pending = 0;
+    for (const c of list) {
+      try { const r = await discoverWebsite(c.id); if (r.assigned) assigned++; pending += r.pending.length; } catch { /* sigue con la siguiente */ }
+    }
+    return list.length === 0 ? "No hay empresas sin sitio web por buscar." : `Se buscó el sitio de ${list.length} empresas: ${assigned} asignados solos y ${pending} sugerencias por confirmar.`;
   });
 }

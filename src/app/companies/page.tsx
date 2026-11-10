@@ -6,7 +6,7 @@ import { requirePermissionPage } from "@/lib/current-user";
 import { can } from "@/lib/rbac";
 import { listCompanies, listIndustries, PAGE_SIZE } from "@/lib/companies/service";
 import { CLASSIFICATION_LABELS, STAGE_LABELS } from "@/lib/labels";
-import { classifyAction } from "./actions";
+import { classifyAction, discoverBatchAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +55,12 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
         <div><label><input type="checkbox" name="noWeb" value="1" defaultChecked={f.noWeb === "1"} /> Solo las que no tienen sitio web</label></div>
         <button className="btn btn-secondary" type="submit">Filtrar</button>
       </form>
+      {canWrite && (
+        <form action={discoverBatchAction} className="card row">
+          <button className="btn btn-secondary" type="submit">Buscar sitios web automáticamente (lote de 20)</button>
+          <span className="muted">Prueba direcciones probables de las empresas sin web. Si el RUC aparece en la portada, el sitio se asigna solo; si no, queda sugerido para que lo confirmes. El lunes Radar lo hace solo con hasta 40.</span>
+        </form>
+      )}
       <div className="card table-wrap" tabIndex={0} role="region" aria-label="Tabla desplazable de empresas">
         {rows.length === 0 ? (
           <div className="empty"><h2>No hay empresas con estos filtros</h2><p>Importa un CSV o crea una empresa para empezar.</p></div>

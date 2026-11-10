@@ -21,11 +21,12 @@ describe("conector MCP (solo lectura)", () => {
   beforeEach(resetData);
   afterAll(async () => { await pool().end(); });
 
-  it("solo ofrece herramientas de lectura y todas lo declaran", async () => {
+  it("solo ofrece consultas de lectura y una única escritura acotada, y lo declaran", async () => {
     const c = await connect();
     const { tools } = await c.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["buscar_empresas_base", "buscar_padron", "estado_radar", "ver_diagnostico", "ver_empresa", "ver_empresa_padron"]);
-    for (const t of tools) expect(t.annotations?.readOnlyHint).toBe(true);
+    expect(tools.map((t) => t.name).sort()).toEqual(["buscar_empresas_base", "buscar_padron", "estado_radar", "proponer_sitio_web", "ver_diagnostico", "ver_empresa", "ver_empresa_padron"]);
+    // Solo una herramienta escribe (propone un sitio web que Radar valida); todas las demás son de lectura
+    for (const t of tools) expect(t.annotations?.readOnlyHint, t.name).toBe(t.name !== "proponer_sitio_web");
   });
 
   it("responde con la base vacía, valida entradas y no inventa datos", async () => {
