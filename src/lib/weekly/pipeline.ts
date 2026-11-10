@@ -7,6 +7,7 @@ import { buildFacts } from "../scoring/engine";
 import { getModelVersion, scoreCompany } from "../scoring/service";
 import { listOffers, matchServices } from "../offers/service";
 import { runDiscoveryInternal } from "../sources/service";
+import { companiesNeedingWebsite, discoverWebsite, WEBSITE_BUDGET } from "../companies/discover-web";
 import { getWeeklySettings, weekStartLima, type WeeklySettings } from "./settings";
 import type { ObservationInput } from "../scoring/engine";
 
@@ -19,6 +20,8 @@ export interface PipelineDeps {
 
 export interface RunStats {
   discovery: { provider: string; found: number; created: number; error?: string }[];
+  /** Búsqueda automática del sitio web de empresas que no lo tenían. */
+  websites?: { tried: number; assigned: number; pending: number };
   candidates: number;
   analyzed: number;
   analysisSkippedForBudget: number;
@@ -78,6 +81,20 @@ export async function runWeeklyPipeline(
           stats.partialReasons.push(`La fuente «${p.code}» falló`);
         }
       }
+    }
+
+    // 1b) Empresas sin sitio web: se busca su sitio (solo se asigna solo si en la portada aparece su RUC; el resto queda sugerido)
+    if (!deps.skipDiscovery) {
+      const w = { tried: 0, assigned: 0, pending: 0 };
+      for (const c of await companiesNeedingWebsite(WEBSITE_BUDGET)) {
+        w.tried++;
+        try {
+          const r = await discoverWebsite(c.id, { fetcher: deps.analyzer.fetcher, userAgent: deps.analyzer.userAgent, timeoutMs: 8000 });
+          if (r.assigned) w.assigned++;
+          w.pending += r.pending.length;
+        } catch { /* una empresa que falla no detiene la ejecución */ }
+      }
+      stats.websites = w;
     }
 
     // 2) Candidatos a analizar: con sitio, sin bloqueo, y sin análisis vigente. Primero los nunca analizados.

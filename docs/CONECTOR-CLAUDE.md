@@ -1,6 +1,6 @@
 # Conector de Radar APROS para Claude (MCP, solo lectura)
 
-Permite que Claude (la conversación «APROS – Comité IA» en la app de escritorio) consulte Radar APROS: buscar empresas en el padrón SUNAT, ver la base de trabajo, las señales detectadas en los sitios y los diagnósticos. **No modifica nada.**
+Permite que Claude (la conversación «APROS – Comité IA» en la app de escritorio) consulte Radar APROS: buscar empresas en el padrón SUNAT, ver la base de trabajo, las señales detectadas en los sitios y los diagnósticos. **Es de solo lectura, con una única excepción acotada: `proponer_sitio_web`.**
 
 ## Herramientas
 | Herramienta | Qué hace |
@@ -11,9 +11,10 @@ Permite que Claude (la conversación «APROS – Comité IA» en la app de escri
 | `buscar_empresas_base` | Búsqueda en la base de trabajo (texto, sin web, ciudad) |
 | `ver_empresa` | Ficha + señales del sitio + estado del diagnóstico |
 | `ver_diagnostico` | Contenido del diagnóstico; indica si es borrador o está aprobado |
+| `proponer_sitio_web` | **Única que escribe.** Propone el sitio de una empresa sin web. Radar lo valida (responde, permite lectura, muestra el nombre o RUC); con el RUC en la portada se asigna, si no queda pendiente de confirmación humana |
 
 ## Qué NO expone
-Usuarios, correos, contraseñas, sesiones ni la lista de «no contactar» (solo indica si una empresa está bloqueada). Todas las herramientas declaran `readOnlyHint` y no hay ninguna que escriba. Los textos que vienen de sitios web se entregan con un aviso de que son datos de terceros, no instrucciones.
+Usuarios, correos, contraseñas, sesiones ni la lista de «no contactar» (solo indica si una empresa está bloqueada). Las herramientas de consulta declaran `readOnlyHint`; `proponer_sitio_web` declara que escribe y solo puede crear una sugerencia de sitio web, nunca editar, aprobar ni borrar. Los textos que vienen de sitios web se entregan con un aviso de que son datos de terceros, no instrucciones.
 
 ## Instalación en la Mac (Claude Desktop)
 1. Docker con la base arriba: `docker compose up -d db`. El conector usa la misma base que la app (`.env`).

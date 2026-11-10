@@ -9,7 +9,7 @@ import { companySources, getCompany, listIndustries } from "@/lib/companies/serv
 import { findDoNotContact } from "@/lib/companies/exclusions";
 import { listUsers } from "@/lib/users";
 import { CLASSIFICATION_LABELS, STAGE_LABELS } from "@/lib/labels";
-import { adjustmentAction, analyzeAction, manualCriteriaAction, recomputeScoreAction, revalidateWebsiteAction, setWebsiteAction, updateCompanyAction } from "../actions";
+import { acceptCandidateAction, adjustmentAction, analyzeAction, discoverWebsiteAction, rejectCandidateAction, manualCriteriaAction, recomputeScoreAction, revalidateWebsiteAction, setWebsiteAction, updateCompanyAction } from "../actions";
 import { pool } from "@/lib/db";
 import { ScorePanel } from "@/components/score-panel";
 import { latestAdjustment, latestManual, latestScore, reproduceScore } from "@/lib/scoring/service";
@@ -20,6 +20,7 @@ import { can } from "@/lib/rbac";
 import { SignalsPanel } from "@/components/signals-panel";
 import { generateOneAction } from "@/app/diagnostics/actions";
 import { latestWebValidation } from "@/lib/companies/web";
+import { listPendingCandidates } from "@/lib/companies/discover-web";
 import { canAnalyze, latestCompletedRunId, listIndustrySignals, listRuns, observationsForRun, signalChanges } from "@/lib/analyzer/service";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
   ]);
   const runId = await latestCompletedRunId(id);
   const webCheck = await latestWebValidation(id);
+  const candidates = company.domain ? [] : await listPendingCandidates(id);
   const diag = (await pool().query<{ id: string }>(`SELECT id FROM diagnostics WHERE company_id = $1`, [id])).rows[0];
   const [runs, rows, changes, indSignals] = await Promise.all([listRuns(id, 5), runId ? observationsForRun(runId) : Promise.resolve([]), signalChanges(id), listIndustrySignals()]);
   const industryNames = Object.fromEntries(indSignals.map((x) => [`industry.${x.slug}`, x.name]));
@@ -102,6 +104,24 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
           </form>
         )}
         {!company.domain && <p className="muted">La empresa no tiene sitio web conocido; no se puede analizar hasta asignarle uno.</p>}
+        {editable && !company.domain && (
+          <div className="card stack" aria-labelledby="sug-title">
+            <h3 id="sug-title">Sitio web sugerido</h3>
+            {candidates.length === 0 ? <p className="muted">Radar puede probar direcciones probables a partir del nombre y comprobar que sean de la empresa.</p> : (
+              <ul>{candidates.map((x) => (
+                <li key={x.id}>
+                  <strong>{x.domain}</strong> · coincidencia {x.confidence}{x.source === "ia" ? " · propuesto por Comité IA" : ""}
+                  {x.evidence.title ? <span className="muted"> · título: «{x.evidence.title}»</span> : null}
+                  <div className="row">
+                    <form action={acceptCandidateAction}><input type="hidden" name="id" value={company.id} /><input type="hidden" name="candidateId" value={x.id} /><button className="btn btn-primary btn-small" type="submit">Confirmar este sitio</button></form>
+                    <form action={rejectCandidateAction}><input type="hidden" name="id" value={company.id} /><input type="hidden" name="candidateId" value={x.id} /><button className="btn btn-secondary btn-small" type="submit">No es</button></form>
+                  </div>
+                </li>
+              ))}</ul>
+            )}
+            <form action={discoverWebsiteAction}><input type="hidden" name="id" value={company.id} /><button className="btn btn-secondary btn-small" type="submit">Buscar sitio automáticamente</button></form>
+          </div>
+        )}
         {editable && (
           <form action={setWebsiteAction} className="card stack" aria-labelledby="web-title">
             <h3 id="web-title">{company.domain ? "Corregir el sitio web" : "Agregar el sitio web"}</h3>

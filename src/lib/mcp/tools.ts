@@ -1,5 +1,6 @@
 import { pool } from "../db";
 import { COMMON_SIGNALS } from "../analyzer/observations";
+import { proposeWebsite } from "../companies/discover-web";
 import { getCompany, listCompanies } from "../companies/service";
 import { parseQuickQuery } from "../registry/quick";
 import { getRegistryCompany, registryStats, searchRegistry } from "../registry/service";
@@ -88,4 +89,9 @@ export async function verDiagnostico(empresaId: string) {
     nota: aprobado ? "Contenido revisado y aprobado por una persona del equipo." : "BORRADOR: aún no está aprobado por una persona; no lo presentes como definitivo.",
     contenido: r.content,
   };
+}
+
+/** Única herramienta que escribe: propone un sitio web (validado por Radar; sin evidencia suficiente, queda para confirmación humana). */
+export async function proponerSitioWeb(empresaId: string, url: string) {
+  return proposeWebsite(empresaId, url, "ia");
 }

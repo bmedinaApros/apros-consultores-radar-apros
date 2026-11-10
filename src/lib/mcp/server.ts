@@ -1,12 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { proponerSitioWeb } from "./tools";
 import { buscarEmpresasBase, buscarPadron, estadoPadron, verDiagnostico, verEmpresa, verEmpresaPadron } from "./tools";
 
 const text = (data: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] });
 const notFound = (what: string) => ({ content: [{ type: "text" as const, text: `${what} no encontrada.` }], isError: true });
 const RO = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
 
-/** Conector de solo lectura de Radar APROS: ninguna herramienta modifica datos. */
+/** Conector de Radar APROS: consulta de solo lectura, más una única escritura acotada (proponer el sitio web de una empresa, que se valida). */
 export function createRadarServer(): McpServer {
   const s = new McpServer({ name: "radar-apros", version: "0.1.0" });
   s.registerTool("estado_radar", { description: "Resumen de qué hay en Radar APROS: tamaño del padrón SUNAT, empresas en la base de trabajo y diagnósticos por estado.", annotations: RO }, async () => text(await estadoPadron()));
@@ -24,5 +25,10 @@ export function createRadarServer(): McpServer {
     async (a) => { const r = await verEmpresa(a.id); return r ? text(r) : notFound("Empresa"); });
   s.registerTool("ver_diagnostico", { description: "Diagnóstico de oportunidades digitales de una empresa (contenido, estado y si está aprobado). Un borrador no aprobado debe presentarse como borrador.", inputSchema: { empresa_id: z.string().uuid() }, annotations: RO },
     async (a) => { const r = await verDiagnostico(a.empresa_id); return r ? text(r) : notFound("Diagnóstico"); });
+  s.registerTool("proponer_sitio_web", {
+    description: "Propone el sitio web de una empresa de la base que no lo tiene (por ejemplo, tras buscarlo en internet). Radar lo comprueba: debe responder, permitir su lectura y mostrar el nombre o el RUC de la empresa. Si aparece el RUC se asigna; si no, queda pendiente de confirmación humana. No modifica nada más.",
+    inputSchema: { empresa_id: z.string().uuid(), url: z.string().min(4).max(300) },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  }, async (a) => text(await proponerSitioWeb(a.empresa_id, a.url)));
   return s;
 }
