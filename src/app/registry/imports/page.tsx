@@ -29,20 +29,22 @@ export default async function ImportsPage({ searchParams }: { searchParams: Prom
   return (
     <AppShell user={user} current="/registry/imports">
       {active && <AutoRefresh />}
-      <h1>Importaciones del padrón</h1>
-      <p className="muted">
-        Radar carga el padrón reducido de SUNAT desde un archivo que tú descargas (modo asistido). Copia el archivo a la carpeta <code>{importDir()}</code> del equipo donde corre Radar
-        (acepta <code>.zip</code>, <code>.gz</code> y <code>.txt</code>). La carga corre en segundo plano, se puede reanudar si se interrumpe y por defecto solo guarda personas jurídicas,
-        activas y habidas: las personas naturales no se guardan.
-      </p>
+      <h1>Cargar padrón</h1>
+      <ol className="muted">
+        <li>Descarga el padrón reducido de SUNAT y cópialo a la carpeta <code>{importDir()}</code> (acepta <code>.zip</code>, <code>.gz</code> y <code>.txt</code>).</li>
+        <li>Elige el archivo abajo y pulsa <strong>Cargar</strong>. Corre en segundo plano (con <code>npm run worker</code> activo) y se puede reanudar si se interrumpe.</li>
+        <li>Cuando termine, ve a <strong>Buscar</strong>.</li>
+      </ol>
       <Flash ok={q.ok} error={q.error} />
       <form action={startImportAction} className="card stack">
-        <h2>Nueva carga</h2>
+        <h2>Elegir archivo</h2>
         {files.length === 0 ? <p className="muted">No hay archivos en la carpeta de importación.</p> : (
           <>
             <div><label htmlFor="file">Archivo</label>
               <select id="file" name="file" required>{files.map((f) => <option key={f.name} value={f.name}>{f.name} · {mb(f.size)} · {fmt.format(f.modified)}</option>)}</select></div>
             <div><label htmlFor="note">Nota de la fuente (aparece en cada dato)</label><input id="note" name="note" maxLength={200} placeholder="Ej.: Actualizado al 07/11/2026" /></div>
+            <details>
+              <summary>Opciones de carga (por defecto: solo personas jurídicas, activas y habidas)</summary>
             <div className="row">
               <div><label htmlFor="persons">Tipo de persona</label>
                 <select id="persons" name="persons" defaultValue="juridica"><option value="juridica">Solo jurídicas (RUC 20)</option><option value="natural">Solo naturales</option><option value="all">Todas</option></select></div>
@@ -51,7 +53,8 @@ export default async function ImportsPage({ searchParams }: { searchParams: Prom
               <div><label htmlFor="ubigeo">Zonas por ubigeo (2, 4 o 6 dígitos, separados por coma; vacío = todas)</label><input id="ubigeo" name="ubigeo" maxLength={200} placeholder="15,07" /></div>
             </div>
             <div><label><input type="checkbox" name="onlyKnown" /> Archivo de locales: cargar solo los de empresas que ya están en el padrón</label></div>
-            <button className="btn btn-primary" type="submit">Cargar</button>
+            </details>
+            <div><button className="btn btn-primary" type="submit">Cargar</button></div>
             <p className="muted">Si es el archivo de locales anexos, cárgalo después del archivo principal de RUC. Los estados y condiciones solo se aplican al archivo de RUC.</p>
           </>
         )}

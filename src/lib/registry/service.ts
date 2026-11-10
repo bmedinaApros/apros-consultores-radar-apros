@@ -59,7 +59,8 @@ function where(f: RegistryFilters): { sql: string; params: unknown[] } {
 export interface SearchResult { rows: RegistryRow[]; nextAfter: string | null; total: number; totalCapped: boolean }
 
 /** Búsqueda paginada por cursor (RUC). Nunca carga el padrón completo: 50 filas por página y un conteo con tope. */
-export async function searchRegistry(input: unknown): Promise<SearchResult> {
+export async function searchRegistry(input: unknown, opts: { pageSize?: number; skipTotal?: boolean } = {}): Promise<SearchResult> {
+  const size = Math.min(Math.max(opts.pageSize ?? REGISTRY_PAGE, 1), 1000);
   const f = filtersSchema.parse(input);
   const { sql, params } = where(f);
   const cursor = f.after ? `${sql ? `${sql} AND` : "WHERE"} r.ruc > $${params.length + 1}` : sql;
@@ -69,11 +70,10 @@ export async function searchRegistry(input: unknown): Promise<SearchResult> {
             (SELECT c.id FROM companies c WHERE c.ruc = r.ruc) AS company_id, r.missing_since, b.source_note, b.finished_at AS loaded_at
        FROM registry_companies r
        LEFT JOIN ubigeo u ON u.code = left(r.ubigeo, 2) LEFT JOIN industries i ON i.id = r.suggested_industry_id LEFT JOIN registry_batches b ON b.id = r.last_batch_id
-       ${cursor} ORDER BY r.ruc LIMIT ${REGISTRY_PAGE + 1}`, cursorParams)).rows;
-  const more = rows.length > REGISTRY_PAGE;
-  const page = rows.slice(0, REGISTRY_PAGE);
-  const cnt = await pool().query<{ n: string }>(`SELECT count(*) AS n FROM (SELECT 1 FROM registry_companies r ${sql} LIMIT ${COUNT_CAP + 1}) s`, params);
-  const total = Number(cnt.rows[0]!.n);
+       ${cursor} ORDER BY r.ruc LIMIT ${size + 1}`, cursorParams)).rows;
+  const more = rows.length > size;
+  const page = rows.slice(0, size);
+  const total = opts.skipTotal ? 0 : Number((await pool().query<{ n: string }>(`SELECT count(*) AS n FROM (SELECT 1 FROM registry_companies r ${sql} LIMIT ${COUNT_CAP + 1}) s`, params)).rows[0]!.n);
   const out: RegistryRow[] = [];
   for (const r of page) {
     const id = { name: r.legal_name, domain: null, ruc: r.ruc };

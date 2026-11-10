@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, FileSearch, House, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Ellipsis, FileSearch, House, Menu, Search, Settings, Upload, X } from "lucide-react";
 import {
   createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore,
   type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject,
@@ -12,7 +12,7 @@ import { activeFor, type IconKey, type VisibleGroup } from "@/lib/nav";
 import { setNavCollapsed } from "@/app/actions/nav";
 
 const ICONS: Record<IconKey, ComponentType<{ size?: number; strokeWidth?: number; "aria-hidden"?: boolean }>> = {
-  home: House, prospect: Search, analyze: FileSearch, settings: Settings,
+  home: House, prospect: Search, analyze: FileSearch, settings: Settings, upload: Upload, more: Ellipsis,
 };
 const ICON = { size: 20, strokeWidth: 1.75, "aria-hidden": true } as const;
 
@@ -170,23 +170,19 @@ export function SideNav({ main, settings }: SideNavProps) {
         <div className="sidebar-head">
           <Image className="logo" src="/brand/apros-logotipo-horizontal-blanco.png" alt="APROS" width={512} height={112} unoptimized priority />
           {isMobile && <button type="button" className="icon-btn" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú"><X {...ICON} /></button>}
+          {!isMobile && (
+            <button
+              type="button" className="icon-btn nav-toggle" onClick={toggleCollapsed} aria-expanded={!collapsed} aria-controls="main-nav"
+              aria-label={collapsed ? "Expandir menú" : "Colapsar menú"} aria-keyshortcuts="Control+B Meta+B" title={`${collapsed ? "Expandir" : "Colapsar"} menú (Ctrl/⌘ + B)`}
+            >
+              {collapsed ? <ChevronRight {...ICON} /> : <ChevronLeft {...ICON} />}
+            </button>
+          )}
         </div>
         <nav id="main-nav" aria-label="Principal" className="nav2">
           <ul className="nav-list">{main.map(group)}</ul>
           {settings && <ul className="nav-list nav-settings">{group(settings)}</ul>}
         </nav>
-        <div className="sidebar-foot">
-          {!isMobile && (
-            <button
-              type="button" className="nav-btn nav-toggle" onClick={toggleCollapsed} aria-expanded={!collapsed} aria-controls="main-nav"
-              aria-keyshortcuts="Control+B Meta+B" title="Ctrl/⌘ + B"
-            >
-              {collapsed ? <PanelLeftOpen {...ICON} /> : <PanelLeftClose {...ICON} />}
-              <span className="nav-label">{collapsed ? "Expandir menú" : "Colapsar menú"}</span>
-              <span className="rail-tip" aria-hidden="true">{collapsed ? "Expandir menú" : "Colapsar menú"}</span>
-            </button>
-          )}
-        </div>
       </aside>
     </>
   );

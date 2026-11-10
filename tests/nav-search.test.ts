@@ -30,34 +30,34 @@ describe("menú por tareas", () => {
   });
 
   it("cada rol ve solo lo que puede usar; Configuración solo aparece si hay algo permitido", () => {
-    const labels = (r: (typeof ROLES)[number]) => visibleNav(r).main.flatMap((g) => g.items.map((i) => i.label));
+    const top = (r: (typeof ROLES)[number]) => visibleNav(r).main.map((g) => g.label);
+    const more = (r: (typeof ROLES)[number]) => visibleNav(r).main.find((g) => g.id === "mas")?.items.map((i) => i.label) ?? [];
     const settings = (r: (typeof ROLES)[number]) => visibleNav(r).settings?.items.map((i) => i.label) ?? null;
     expect(settings("admin")).toEqual(NAV_SETTINGS.items.map((i) => i.label));
-    expect(labels("admin")).toEqual(expect.arrayContaining(["Buscar empresas", "Empresas", "Importar CSV", "Importaciones del padrón", "Fuentes", "Diagnósticos", "Duplicados"]));
-    // Todos ven y buscan en el padrón; cargar archivos es de administrador y líder
-    for (const r of ROLES) expect(labels(r)).toContain("Buscar empresas");
-    expect(labels("sales_lead")).toContain("Importaciones del padrón");
-    for (const r of ["consultant", "salesperson", "read_only"] as const) expect(labels(r)).not.toContain("Importaciones del padrón");
+    // Lo principal: buscar y cargar el padrón; el resto va dentro de «Más»
+    expect(top("admin")).toEqual(["Buscar", "Cargar padrón", "Más"]);
+    expect(more("admin")).toEqual(expect.arrayContaining(["Empresas de la base", "Importar CSV", "Fuentes", "Diagnósticos", "Duplicados"]));
+    for (const r of ROLES) expect(top(r)).toContain("Buscar");
+    expect(top("sales_lead")).toContain("Cargar padrón");
+    for (const r of ["consultant", "salesperson", "read_only"] as const) expect(top(r)).not.toContain("Cargar padrón");
     expect(settings("admin")).toContain("Reglas de rubro");
-    // El líder de ventas ve solo las dos entradas de Configuración que su permiso permite
     expect(settings("sales_lead")).toEqual(["No contactar", "Auditoría"]);
-    expect(labels("sales_lead")).not.toContain("Fuentes");
-    // Sin permisos de administración no hay Configuración
+    expect(more("sales_lead")).not.toContain("Fuentes");
     for (const r of ["consultant", "salesperson", "read_only"] as const) expect(settings(r)).toBeNull();
-    expect(labels("read_only")).toEqual(["Buscar empresas", "Empresas", "Lista semanal", "Bandeja de revisión", "Diagnósticos"]);
-    expect(labels("salesperson")).not.toContain("Duplicados");
-    // Inicio siempre está
-    for (const r of ROLES) expect(visibleNav(r).main[0]).toMatchObject({ id: "inicio", href: "/" });
+    expect(more("read_only")).toEqual(["Empresas de la base", "Diagnósticos", "Lista semanal", "Bandeja de revisión"]);
+    expect(more("salesperson")).not.toContain("Duplicados");
   });
 
   it("resuelve el grupo y la página activos con la coincidencia más específica", () => {
     const admin = [...visibleNav("admin").main, visibleNav("admin").settings!];
-    expect(activeFor(admin, "/")).toEqual({ groupId: "inicio", href: "/" });
-    expect(activeFor(admin, "/companies")).toEqual({ groupId: "prospectar", href: "/companies" });
-    expect(activeFor(admin, "/companies/0b7c")).toEqual({ groupId: "prospectar", href: "/companies" });
-    expect(activeFor(admin, "/companies/import")).toEqual({ groupId: "prospectar", href: "/companies/import" });
-    expect(activeFor(admin, "/companies/import/xyz")).toEqual({ groupId: "prospectar", href: "/companies/import" });
-    expect(activeFor(admin, "/diagnostics/abc")).toEqual({ groupId: "analizar", href: "/diagnostics" });
+    expect(activeFor(admin, "/registry")).toEqual({ groupId: "buscar", href: "/registry" });
+    expect(activeFor(admin, "/registry/20100000001")).toEqual({ groupId: "buscar", href: "/registry" });
+    expect(activeFor(admin, "/registry/imports")).toEqual({ groupId: "cargar", href: "/registry/imports" });
+    expect(activeFor(admin, "/companies")).toEqual({ groupId: "mas", href: "/companies" });
+    expect(activeFor(admin, "/companies/0b7c")).toEqual({ groupId: "mas", href: "/companies" });
+    expect(activeFor(admin, "/companies/import")).toEqual({ groupId: "mas", href: "/companies/import" });
+    expect(activeFor(admin, "/companies/import/xyz")).toEqual({ groupId: "mas", href: "/companies/import" });
+    expect(activeFor(admin, "/diagnostics/abc")).toEqual({ groupId: "mas", href: "/diagnostics" });
     expect(activeFor(admin, "/admin/users")).toEqual({ groupId: "configuracion", href: "/admin/users" });
     expect(activeFor(admin, "/companiesx")).toEqual({ groupId: null, href: null }); // prefijo sin barra no cuenta
     expect(activeFor(admin, "/account/password")).toEqual({ groupId: null, href: null });

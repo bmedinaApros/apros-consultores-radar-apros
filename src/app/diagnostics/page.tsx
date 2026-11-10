@@ -17,7 +17,7 @@ export default async function DiagnosticsPage({ searchParams }: { searchParams: 
   return (
     <AppShell user={user} current="/diagnostics">
       <h1>Diagnósticos</h1>
-      <p className="muted">Cada diagnóstico se genera con IA a partir de lo observado en el sitio público, lo revisa una persona y solo entonces se puede descargar.</p>
+      <p className="muted">Cada diagnóstico se genera con plantillas y reglas (o con IA, si se activa) a partir de lo observado en el sitio público, lo revisa una persona y solo entonces se puede descargar.</p>
       <nav className="row" aria-label="Filtrar por estado">
         <Link className="btn btn-secondary btn-small" href="/diagnostics">Todos</Link>
         {(Object.keys(STATUS_LABEL) as (keyof typeof STATUS_LABEL)[]).map((k) => <Link key={k} className="btn btn-secondary btn-small" href={`/diagnostics?status=${k}`}>{STATUS_LABEL[k]}</Link>)}

@@ -6,3 +6,5 @@ node_modules
 coverage
 tests
 data
+.next-share
+.next-local
