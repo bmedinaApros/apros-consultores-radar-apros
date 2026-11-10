@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { proponerSitioWeb } from "./tools";
+import { ejecutarSemana, estadoSemana, proponerSitioWeb, verListaSemanal } from "./tools";
 import { buscarEmpresasBase, buscarPadron, estadoPadron, verDiagnostico, verEmpresa, verEmpresaPadron } from "./tools";
 
 const text = (data: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] });
@@ -30,5 +30,16 @@ export function createRadarServer(): McpServer {
     inputSchema: { empresa_id: z.string().uuid(), url: z.string().min(4).max(300) },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   }, async (a) => text(await proponerSitioWeb(a.empresa_id, a.url)));
+  s.registerTool("ver_lista_semanal", {
+    description: "La lista semanal de empresas priorizadas para contactar (la más reciente por defecto): puntaje, prioridad, sitio, rubro, servicios sugeridos y motivos. Las «pendientes» aún no las aprobó una persona del equipo.",
+    inputSchema: { lista_id: z.string().uuid().optional(), revision: z.enum(["pendientes", "aprobadas", "todas"]).optional(), limite: z.number().int().min(1).max(50).optional() }, annotations: RO,
+  }, async (a) => { const r = await verListaSemanal({ listaId: a.lista_id, revision: a.revision, limite: a.limite }); return r ? text(r) : notFound("Lista semanal"); });
+  s.registerTool("estado_semana", {
+    description: "Estado de las últimas corridas de la lista semanal (en curso, terminada, con error), cuántas hay en cola y cómo está programada.", annotations: RO,
+  }, async () => text(await estadoSemana()));
+  s.registerTool("ejecutar_semana", {
+    description: "Deja en cola una corrida de la lista semanal ahora (buscar sitios web, analizar, puntuar y armar la lista). No espera: la ejecuta el worker de Radar y tarda varios minutos; consulta después estado_semana y ver_lista_semanal. No contacta a nadie.",
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  }, async () => text(await ejecutarSemana()));
   return s;
 }

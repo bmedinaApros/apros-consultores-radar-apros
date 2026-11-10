@@ -44,7 +44,7 @@ export default async function WeeklySettingsPage({ searchParams }: { searchParam
         <div><label htmlFor="pagespeedBudget">Máximo de consultas a PageSpeed por ejecución (0 = ninguna)</label><input id="pagespeedBudget" name="pagespeedBudget" type="number" min={0} max={500} defaultValue={s.pagespeedBudget} required /></div>
         <div><label htmlFor="noveltyWeeks">Semanas sin repetir una empresa (0 = nunca, salvo que cambie una señal relevante)</label><input id="noveltyWeeks" name="noveltyWeeks" type="number" min={0} max={520} defaultValue={s.noveltyWeeks} required /></div>
         <div><label><input type="checkbox" name="scheduleEnabled" defaultChecked={s.scheduleEnabled} /> Ejecutar automáticamente</label></div>
-        <div><label htmlFor="cron">Calendario (cron, hora de Lima; por defecto lunes 06:00)</label><input id="cron" name="cron" defaultValue={s.cron} required pattern="[0-9*/,\- ]{5,40}" /></div>
+        <div><label htmlFor="cron">Calendario (cron, hora de Lima; por defecto lunes 08:30)</label><input id="cron" name="cron" defaultValue={s.cron} required pattern="[0-9*/,\- ]{5,40}" /></div>
         <button className="btn btn-primary" type="submit">Guardar</button>
       </form>
       <div className="card table-wrap" tabIndex={0} role="region" aria-label="Tabla desplazable de ejecuciones recientes">

@@ -48,7 +48,7 @@ Lista de los diagnósticos y su estado: **Borrador → En revisión → Aprobado
 4. Si cambia la evidencia (nuevo análisis del sitio), el diagnóstico queda **desactualizado** y hay que regenerarlo y volver a aprobarlo.
 
 ### Lista semanal
-La lista de empresas candidatas que Radar arma cada semana a partir de las fuentes activas, analizada y puntuada, para que una persona la revise.
+La lista de empresas candidatas que Radar arma cada **lunes a las 8:30** (con el worker activo), de hasta 50 empresas: busca el sitio de las que no lo tienen, lo analiza, puntúa y arma la lista. También se puede pedir a «Comité IA» («muéstrame la lista de esta semana», «corre la lista ahora»). Es la lista de empresas candidatas que Radar arma cada semana a partir de las fuentes activas, analizada y puntuada, para que una persona la revise.
 
 ### Bandeja de revisión
 Empresas con puntaje, de mayor a menor. Aprueba o descarta cada una. Los puntajes de rubros distintos usan modelos distintos y solo se comparan si el modelo es el mismo.

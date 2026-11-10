@@ -74,7 +74,7 @@ En **Señales por rubro** (administrador) puedes agregar palabras clave propias 
 Con `npm run dev` y `npm run worker` corriendo, entra como administrador:
 
 1. Importa empresas con sitio web (**Importar CSV**) o activa la fuente simulada en **Fuentes**.
-2. Ve a **Lista semanal** y pulsa **Ejecutar ahora**. El worker descubre, analiza (con presupuesto), puntúa y guarda la lista. También corre solo, por defecto los lunes a las 06:00 (hora de Lima).
+2. Ve a **Lista semanal** y pulsa **Ejecutar ahora**. El worker descubre, analiza (con presupuesto), puntúa y guarda la lista. También corre solo, por defecto los lunes a las 08:30 (hora de Lima).
 3. Revisa cada empresa: **por qué** está, qué **servicios** podrían encajar (hipótesis) y aprueba, asigna a un vendedor o rechaza con motivo.
 4. Entra como vendedor: solo ve lo aprobado que es suyo o está libre, en la lista y en la **Bandeja**.
 
