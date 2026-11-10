@@ -22,5 +22,7 @@ await runner({
   direction,
   count: direction === "down" ? 1 : Infinity,
   migrationsTable: "pgmigrations",
+  // Si tu base ya aplicó una migración de una rama que no llegó a main, el orden estricto falla: MIGRATE_NO_CHECK_ORDER=yes lo omite.
+  checkOrder: process.env.MIGRATE_NO_CHECK_ORDER !== "yes",
   log: (m) => console.log(m),
 });
