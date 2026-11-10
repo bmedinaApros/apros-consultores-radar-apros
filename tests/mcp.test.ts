@@ -24,7 +24,7 @@ describe("conector MCP (solo lectura)", () => {
   it("solo ofrece consultas de lectura y una única escritura acotada, y lo declaran", async () => {
     const c = await connect();
     const { tools } = await c.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["buscar_empresas_base", "buscar_padron", "ejecutar_semana", "estado_radar", "estado_semana", "proponer_sitio_web", "ver_diagnostico", "ver_empresa", "ver_empresa_padron", "ver_lista_semanal"]);
+    expect(tools.map((t) => t.name).sort()).toEqual(["buscar_empresas_base", "buscar_padron", "ejecutar_semana", "estado_radar", "estado_semana", "proponer_sitio_web", "ver_diagnostico", "ver_empresa", "ver_empresa_padron", "ver_lista_semanal", "ver_sitios_por_confirmar"]);
     // Solo dos escriben, de forma acotada (proponer un sitio web que Radar valida; dejar una corrida en cola); el resto es lectura
     for (const t of tools) expect(t.annotations?.readOnlyHint, t.name).toBe(!["proponer_sitio_web", "ejecutar_semana"].includes(t.name));
   });
@@ -38,6 +38,20 @@ describe("conector MCP (solo lectura)", () => {
     expect((await call(c, "ver_diagnostico", { empresa_id: "6f1b0f7e-3f0e-4c1e-9c3a-2b1a8f0d9c11" })).isError).toBe(true);
     const bad = await c.callTool({ name: "ver_empresa_padron", arguments: { ruc: "no-es-ruc" } }).catch((e) => e);
     expect((bad as { isError?: boolean }).isError ?? true).toBe(true);
+  });
+
+  it("ver_sitios_por_confirmar entrega el resumen y las sugerencias sin exponer usuarios", async () => {
+    const c = await connect();
+    const empty = JSON.parse((await call(c, "ver_sitios_por_confirmar")).text);
+    expect(empty.sugerencias).toEqual([]);
+    expect(empty.resumen).toMatchObject({ empresas_intentadas: 0, por_confirmar: 0 });
+    const co = (await pool().query<{ id: string }>(`INSERT INTO companies (legal_name, normalized_name, classification) VALUES ('Marmoles Andinos SAC','marmoles andinos','to_classify') RETURNING id`)).rows[0]!;
+    await pool().query(`INSERT INTO company_website_candidates (company_id, domain, confidence, source, evidence) VALUES ($1,'marmolesandinos.com.pe','media','auto','{"title":"Mármoles Andinos"}'::jsonb)`, [co.id]);
+    const r = JSON.parse((await call(c, "ver_sitios_por_confirmar")).text);
+    expect(r.sugerencias).toHaveLength(1);
+    expect(r.sugerencias[0]).toMatchObject({ empresa: "Marmoles Andinos SAC", sitio_sugerido: "https://marmolesandinos.com.pe", coincidencia: "media", origen: "búsqueda automática" });
+    expect(r.resumen.por_confirmar).toBe(1);
+    expect(JSON.stringify(r)).not.toMatch(/@|password/i);
   });
 
   it("encuentra una empresa del padrón y no expone usuarios ni correos", async () => {

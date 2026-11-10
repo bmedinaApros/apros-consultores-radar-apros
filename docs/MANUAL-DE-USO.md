@@ -40,6 +40,9 @@ Las empresas que ya promoviste. Puedes buscarlas y filtrarlas, abrir su ficha y 
 - **Puntaje:** prioridad calculada con el modelo del rubro, con su explicación y la posibilidad de ajustarlo con criterios manuales.
 - **Señales externas (registro manual):** botones que abren en otra pestaña la búsqueda en Computrabajo, Bumeran, Laborum, Biblioteca de anuncios de Meta e Indecopi. Lo que veas, lo registras con tipo, fuente, fecha, enlace y tu nombre queda anotado. Radar no lee esos sitios por su cuenta.
 
+### Sitios por confirmar
+Todos los sitios web que Radar (o Comité IA) encontró para empresas sin web y que no se pudieron asignar solos. Arriba, un resumen de la búsqueda (intentadas, asignadas, por confirmar, sin sitio). En cada fila: la empresa, el sitio (se abre en otra pestaña), por qué coincide (RUC o nombre en la portada) y los botones **Confirmar** / **No es**. También tiene el botón del lote de 20. Comité IA puede leer esta misma información con `ver_sitios_por_confirmar`.
+
 ### Diagnósticos
 Lista de los diagnósticos y su estado: **Borrador → En revisión → Aprobado** (o Rechazado).
 1. Abre un diagnóstico, revísalo y edítalo si hace falta (cada cambio crea una versión nueva).

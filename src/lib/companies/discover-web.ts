@@ -193,3 +193,33 @@ export async function rejectCandidate(actor: ActorInfo, id: string): Promise<voi
   await pool().query(`UPDATE company_website_candidates SET status = 'rejected', decided_by = $2, decided_at = now() WHERE id = $1`, [id, actor.id]);
   await audit({ actorId: actor.id, actorEmail: actor.email, action: "company.website_candidate_rejected", entityType: "company", entityId: cand.company_id, metadata: { domain: cand.domain } });
 }
+
+export interface PendingRow extends WebsiteCandidate { company_id: string; legal_name: string; ruc: string | null; city: string | null }
+
+/** Todas las sugerencias pendientes (las de mayor confianza primero), para una sola pantalla de revisión. */
+export async function listAllPendingCandidates(limit = 100, offset = 0): Promise<{ rows: PendingRow[]; total: number }> {
+  const l = Math.min(Math.max(Math.trunc(limit) || 100, 1), 200);
+  const o = Math.max(Math.trunc(offset) || 0, 0);
+  const rows = (await pool().query<PendingRow>(
+    `SELECT k.id, k.domain, k.confidence, k.source, k.evidence, k.created_at, k.company_id, c.legal_name, c.ruc, c.city
+       FROM company_website_candidates k JOIN companies c ON c.id = k.company_id
+      WHERE k.status = 'pending' AND c.domain IS NULL
+      ORDER BY CASE k.confidence WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END, k.created_at DESC, k.id LIMIT $1 OFFSET $2`, [l, o])).rows;
+  const total = Number((await pool().query<{ n: string }>(`SELECT count(*) AS n FROM company_website_candidates k JOIN companies c ON c.id = k.company_id WHERE k.status = 'pending' AND c.domain IS NULL`)).rows[0]!.n);
+  return { rows, total };
+}
+
+export interface WebsiteStats { intentadas: number; asignadas: number; por_confirmar: number; sin_sitio: number; con_sitio: number; ultimo_intento: Date | null }
+
+/** Resumen de la búsqueda automática: cuántas empresas se intentaron, cuántas quedaron con sitio y cuántas esperan confirmación. */
+export async function websiteStats(): Promise<WebsiteStats> {
+  const r = await pool().query<{ intentadas: string; asignadas: string; por_confirmar: string; sin_sitio: string; con_sitio: string; ultimo: Date | null }>(
+    `SELECT (SELECT count(*) FROM company_website_attempts) AS intentadas,
+            (SELECT count(*) FROM company_website_candidates WHERE status = 'accepted') AS asignadas,
+            (SELECT count(*) FROM company_website_candidates k JOIN companies c ON c.id = k.company_id WHERE k.status = 'pending' AND c.domain IS NULL) AS por_confirmar,
+            (SELECT count(*) FROM companies WHERE domain IS NULL) AS sin_sitio,
+            (SELECT count(*) FROM companies WHERE domain IS NOT NULL) AS con_sitio,
+            (SELECT max(attempted_at) FROM company_website_attempts) AS ultimo`);
+  const x = r.rows[0]!;
+  return { intentadas: Number(x.intentadas), asignadas: Number(x.asignadas), por_confirmar: Number(x.por_confirmar), sin_sitio: Number(x.sin_sitio), con_sitio: Number(x.con_sitio), ultimo_intento: x.ultimo };
+}

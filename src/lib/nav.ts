@@ -19,6 +19,7 @@ export const NAV: readonly NavGroupDef[] = [
     id: "mas", label: "Más", icon: "more",
     items: [
       { href: "/companies", label: "Empresas de la base", permission: "companies.read" },
+      { href: "/companies/websites", label: "Sitios por confirmar", permission: "companies.read" },
       { href: "/diagnostics", label: "Diagnósticos", permission: "companies.read" },
       { href: "/weekly", label: "Lista semanal", permission: "weekly.read" },
       { href: "/inbox", label: "Bandeja de revisión", permission: "weekly.read" },
