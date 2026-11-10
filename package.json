@@ -24,6 +24,7 @@
     "registry:rubros": "tsx --env-file=.env scripts/registry-rubros.ts",
     "registry:search": "tsx --env-file=.env scripts/registry-search.ts",
     "mcp:config": "tsx scripts/mcp-config.ts",
+    "iniciar": "bash scripts/iniciar.sh",
     "mcp": "tsx --env-file=.env scripts/mcp-server.ts"
   },
   "dependencies": {
