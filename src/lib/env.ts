@@ -24,6 +24,13 @@ const schema = z.object({
   AI_PROVIDER: z.enum(["rules", "anthropic", "disabled", "simulated"]).default("rules"),
   ANTHROPIC_API_KEY: z.string().default(""),
   ANTHROPIC_MODEL: z.string().min(1).default("claude-opus-5-5"),
+  // Investigación de empresas (sitio web y contactos públicos) con Grok y búsqueda web. Solo con clave de API de xAI (pago por uso).
+  XAI_API_KEY: z.string().default(""),
+  XAI_MODEL: z.string().min(1).default("grok-4.3"),
+  XAI_BASE_URL: z.string().url().default("https://api.x.ai/v1"),
+  /** Tope de empresas investigadas por corrida semanal y de gasto estimado por corrida (USD). */
+  RESEARCH_PER_RUN: z.coerce.number().int().min(0).max(500).default(40),
+  RESEARCH_MAX_USD_PER_RUN: z.coerce.number().min(0).max(1000).default(3),
 });
 
 export type Env = z.infer<typeof schema>;

@@ -9,6 +9,9 @@ import { can, ForbiddenError } from "@/lib/rbac";
 import { canAnalyze } from "@/lib/analyzer/service";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { enqueueAnalysis } from "@/lib/jobs/queue";
+import { enqueueResearch } from "@/lib/jobs/queue";
+import { researchProviderFromEnv } from "@/lib/research/provider";
+import { companiesNeedingResearch } from "@/lib/research/service";
 import { acceptCandidate, companiesNeedingWebsite, discoverWebsite, rejectCandidate } from "@/lib/companies/discover-web";
 import { revalidateCompanyWebsite, setCompanyWebsite } from "@/lib/companies/web";
 
@@ -184,11 +187,29 @@ export async function discoverBatchAction(): Promise<void> {
   return guarded("/companies?noWeb=1", async () => {
     if (!can(user.role, "companies.write")) throw new ForbiddenError("No tienes permiso para modificar empresas");
     if (!batchLimiter.check(user.userId).allowed) throw new CompanyError("Ya buscaste sitios web hace poco; intenta más tarde");
+    // Con Grok configurado, el lote investiga sitio y contactos (en segundo plano, lo hace el worker); si no, prueba direcciones probables.
+    if (researchProviderFromEnv()) {
+      const todo = await companiesNeedingResearch(10);
+      for (const c of todo) await enqueueResearch({ companyId: c.id });
+      return todo.length === 0 ? "No hay empresas por investigar." : `Se pusieron en cola ${todo.length} empresas para investigar con Grok. Las procesa el worker (un par de minutos); revisa luego «Sitios por confirmar» y las fichas.`;
+    }
     const list = await companiesNeedingWebsite(20);
     let assigned = 0, pending = 0;
     for (const c of list) {
       try { const r = await discoverWebsite(c.id); if (r.assigned) assigned++; pending += r.pending.length; } catch { /* sigue con la siguiente */ }
     }
     return list.length === 0 ? "No hay empresas sin sitio web por buscar." : `Se buscó el sitio de ${list.length} empresas: ${assigned} asignados solos y ${pending} sugerencias por confirmar. Revísalas en «Más → Sitios por confirmar».`;
+  });
+}
+
+export async function researchCompanyAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = z.string().uuid().parse(formData.get("id"));
+  return guarded(`/companies/${id}`, async () => {
+    if (!can(user.role, "companies.write")) throw new ForbiddenError("No tienes permiso para modificar empresas");
+    if (!researchProviderFromEnv()) throw new CompanyError("La investigación con Grok no está activa: falta XAI_API_KEY en el archivo .env.");
+    if (!webLimiter.check(user.userId).allowed) throw new CompanyError("Demasiadas consultas; intenta más tarde");
+    await enqueueResearch({ companyId: id });
+    return "Investigación en cola. La procesa el worker (un par de minutos); actualiza la página para ver el sitio y los contactos.";
   });
 }

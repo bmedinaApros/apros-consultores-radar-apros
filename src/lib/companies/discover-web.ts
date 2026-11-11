@@ -96,7 +96,7 @@ async function evaluate(domain: string, name: string, ruc: string | null, deps: 
   return { check, match: matchEvidence(home.body, name, ruc) };
 }
 
-async function saveCandidate(companyId: string, domain: string, source: "auto" | "ia", m: MatchEvidence): Promise<string | null> {
+async function saveCandidate(companyId: string, domain: string, source: "auto" | "ia" | "grok", m: MatchEvidence): Promise<string | null> {
   if (!m.confidence) return null;
   const r = await pool().query<{ id: string }>(
     `INSERT INTO company_website_candidates (company_id, domain, confidence, source, evidence) VALUES ($1,$2,$3,$4,$5::jsonb)
@@ -144,7 +144,7 @@ export async function companiesNeedingWebsite(limit: number): Promise<{ id: stri
 }
 
 /** Propuesta externa (p. ej. de «Comité IA»): se valida igual que una escrita a mano y nunca se acepta solo sin evidencia. */
-export async function proposeWebsite(companyId: string, url: string, source: "auto" | "ia", deps: WebDeps = defaultWebDeps()): Promise<{ status: "assigned" | "pending" | "rejected"; domain: string | null; message: string }> {
+export async function proposeWebsite(companyId: string, url: string, source: "auto" | "ia" | "grok", deps: WebDeps = defaultWebDeps()): Promise<{ status: "assigned" | "pending" | "rejected"; domain: string | null; message: string }> {
   const c = await getCompany(companyId);
   if (!c) throw new CompanyError("Empresa no encontrada");
   if (c.domain) return { status: "rejected", domain: c.domain, message: "La empresa ya tiene sitio web." };
@@ -160,7 +160,7 @@ export async function proposeWebsite(companyId: string, url: string, source: "au
   return { status: "pending", domain: nd.domain, message: `Queda pendiente de confirmación (coincidencia ${e.match.confidence}).` };
 }
 
-export interface WebsiteCandidate { id: string; domain: string; confidence: Confidence; source: "auto" | "ia"; evidence: { ruc?: boolean; headHits?: string[]; title?: string | null }; created_at: Date }
+export interface WebsiteCandidate { id: string; domain: string; confidence: Confidence; source: "auto" | "ia" | "grok"; evidence: { ruc?: boolean; headHits?: string[]; title?: string | null }; created_at: Date }
 
 export async function listPendingCandidates(companyId: string): Promise<WebsiteCandidate[]> {
   return (await pool().query<WebsiteCandidate>(

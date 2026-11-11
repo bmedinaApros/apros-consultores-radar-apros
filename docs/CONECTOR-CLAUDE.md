@@ -9,7 +9,7 @@ Permite que Claude (la conversación «APROS – Comité IA» en la app de escri
 | `buscar_padron` | Búsqueda en lenguaje natural («clínicas en Arequipa») o por RUC, hasta 50 resultados |
 | `ver_empresa_padron` | Ficha de una empresa del padrón por RUC |
 | `buscar_empresas_base` | Búsqueda en la base de trabajo (texto, sin web, ciudad) |
-| `ver_empresa` | Ficha + señales del sitio + estado del diagnóstico |
+| `ver_empresa` | Ficha + señales del sitio + contactos públicos + estado del diagnóstico |
 | `ver_diagnostico` | Contenido del diagnóstico; indica si es borrador o está aprobado |
 | `ver_lista_semanal` | La lista semanal de empresas priorizadas (puntaje, servicios sugeridos, motivos, estado de revisión). Por defecto la última, hasta 50 |
 | `estado_semana` | Cómo van las últimas corridas, cuántas hay en cola y cómo está programada |

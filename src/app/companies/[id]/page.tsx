@@ -9,7 +9,7 @@ import { companySources, getCompany, listIndustries } from "@/lib/companies/serv
 import { findDoNotContact } from "@/lib/companies/exclusions";
 import { listUsers } from "@/lib/users";
 import { CLASSIFICATION_LABELS, STAGE_LABELS } from "@/lib/labels";
-import { acceptCandidateAction, adjustmentAction, analyzeAction, discoverWebsiteAction, rejectCandidateAction, manualCriteriaAction, recomputeScoreAction, revalidateWebsiteAction, setWebsiteAction, updateCompanyAction } from "../actions";
+import { acceptCandidateAction, adjustmentAction, analyzeAction, discoverWebsiteAction, rejectCandidateAction, researchCompanyAction, manualCriteriaAction, recomputeScoreAction, revalidateWebsiteAction, setWebsiteAction, updateCompanyAction } from "../actions";
 import { pool } from "@/lib/db";
 import { ScorePanel } from "@/components/score-panel";
 import { latestAdjustment, latestManual, latestScore, reproduceScore } from "@/lib/scoring/service";
@@ -21,6 +21,8 @@ import { SignalsPanel } from "@/components/signals-panel";
 import { generateOneAction } from "@/app/diagnostics/actions";
 import { latestWebValidation } from "@/lib/companies/web";
 import { listPendingCandidates } from "@/lib/companies/discover-web";
+import { listContacts } from "@/lib/research/service";
+import { researchProviderFromEnv } from "@/lib/research/provider";
 import { canAnalyze, latestCompletedRunId, listIndustrySignals, listRuns, observationsForRun, signalChanges } from "@/lib/analyzer/service";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +41,8 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
   const runId = await latestCompletedRunId(id);
   const webCheck = await latestWebValidation(id);
   const candidates = company.domain ? [] : await listPendingCandidates(id);
+  const contacts = await listContacts(id);
+  const researchOn = researchProviderFromEnv() !== null;
   const diag = (await pool().query<{ id: string }>(`SELECT id FROM diagnostics WHERE company_id = $1`, [id])).rows[0];
   const [runs, rows, changes, indSignals] = await Promise.all([listRuns(id, 5), runId ? observationsForRun(runId) : Promise.resolve([]), signalChanges(id), listIndustrySignals()]);
   const industryNames = Object.fromEntries(indSignals.map((x) => [`industry.${x.slug}`, x.name]));
@@ -110,7 +114,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
             {candidates.length === 0 ? <p className="muted">Radar puede probar direcciones probables a partir del nombre y comprobar que sean de la empresa.</p> : (
               <ul>{candidates.map((x) => (
                 <li key={x.id}>
-                  <strong>{x.domain}</strong> · coincidencia {x.confidence}{x.source === "ia" ? " · propuesto por Comité IA" : ""}
+                  <strong>{x.domain}</strong> · coincidencia {x.confidence}{x.source === "ia" ? " · propuesto por Comité IA" : x.source === "grok" ? " · encontrado por Grok" : ""}
                   {x.evidence.title ? <span className="muted"> · título: «{x.evidence.title}»</span> : null}
                   <div className="row">
                     <form action={acceptCandidateAction}><input type="hidden" name="id" value={company.id} /><input type="hidden" name="candidateId" value={x.id} /><button className="btn btn-primary btn-small" type="submit">Confirmar este sitio</button></form>
@@ -180,6 +184,22 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
             </fieldset>
           </form>
         )}
+      </section>
+      <section className="card stack" aria-labelledby="contactos">
+        <h2 id="contactos">Contactos públicos</h2>
+        <p className="muted">Medios de contacto que la empresa publica, encontrados por Grok con búsqueda web. Cada uno lleva su fuente. «Verificado en su sitio» significa que Radar lo vio en el sitio propio de la empresa; los demás hay que comprobarlos antes de usarlos.</p>
+        {contacts.length === 0 ? <p className="muted">Todavía no hay contactos.</p> : (
+          <ul>{contacts.map((k) => (
+            <li key={k.id}>
+              <strong>{{ telefono: "Teléfono", whatsapp: "WhatsApp", correo: "Correo", formulario: "Formulario", red_social: "Red social" }[k.kind] ?? k.kind}:</strong> {k.kind === "formulario" || k.kind === "red_social" ? <a href={k.value} target="_blank" rel="noopener noreferrer">{k.value}</a> : k.value}
+              {" · "}<span className={k.status === "verificado_en_sitio" ? "badge badge-ok" : "badge badge-info"}>{k.status === "verificado_en_sitio" ? "Verificado en su sitio" : "Sin verificar"}</span>
+              {" · "}<a href={k.source_url} target="_blank" rel="noopener noreferrer">fuente</a>
+            </li>
+          ))}</ul>
+        )}
+        {editable && (researchOn
+          ? <form action={researchCompanyAction}><input type="hidden" name="id" value={company.id} /><button className="btn btn-secondary btn-small" type="submit">Investigar con Grok (sitio y contactos)</button></form>
+          : <p className="muted">Para activar la investigación con Grok, agrega <code>XAI_API_KEY</code> al archivo <code>.env</code> (ver docs/AI-DATA.md).</p>)}
       </section>
       <section className="card" aria-labelledby="fuentes">
         <h2 id="fuentes">Procedencia de los datos</h2>

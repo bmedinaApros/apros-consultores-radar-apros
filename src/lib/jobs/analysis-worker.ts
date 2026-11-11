@@ -5,7 +5,9 @@ import { runWeeklyPipeline } from "../weekly/pipeline";
 import { generateDiagnostic } from "../diagnostics/service";
 import { pool } from "../db";
 import { runBatch } from "../registry/import";
-import { ANALYZE_QUEUE, DIAGNOSTIC_QUEUE, REGISTRY_QUEUE, WEEKLY_QUEUE, type AnalyzeJob, type DiagnosticJob, type RegistryJob, type WeeklyJob } from "./queue";
+import { researchProviderFromEnv } from "../research/provider";
+import { researchCompany } from "../research/service";
+import { ANALYZE_QUEUE, DIAGNOSTIC_QUEUE, REGISTRY_QUEUE, RESEARCH_QUEUE, WEEKLY_QUEUE, type AnalyzeJob, type ResearchJob, type DiagnosticJob, type RegistryJob, type WeeklyJob } from "./queue";
 
 /** Registra el procesador de análisis. Un fallo se reintenta; «omitido» y «completado» no. */
 export async function registerAnalysisWorker(boss: PgBoss, deps: AnalyzerDeps, concurrency = 2): Promise<void> {
@@ -57,6 +59,21 @@ export async function registerRegistryWorker(boss: PgBoss): Promise<void> {
       log("info", "carga del padrón terminada", { batchId: b.id, status: b.status, loaded: b.rows_loaded, skipped: b.rows_skipped });
     } catch (e) {
       log("warn", "la carga del padrón no terminó", { batchId: job.data.batchId, error: (e as Error).message });
+    }
+  });
+}
+
+/** Procesador de la investigación de empresas con Grok (de a una, por costo). Sin clave de xAI no hace nada. */
+export async function registerResearchWorker(boss: PgBoss): Promise<void> {
+  await boss.work<ResearchJob>(RESEARCH_QUEUE, { localConcurrency: 1, batchSize: 1, pollingIntervalSeconds: 2 }, async ([job]) => {
+    if (!job) return;
+    const provider = researchProviderFromEnv();
+    if (!provider) { log("warn", "investigación omitida: falta XAI_API_KEY", { companyId: job.data.companyId }); return; }
+    try {
+      const r = await researchCompany(job.data.companyId, provider);
+      log("info", "investigación terminada", { companyId: job.data.companyId, status: r.status, website: r.website.status, contacts: r.contacts.found, costUsd: Number(r.costUsd.toFixed(4)) });
+    } catch (e) {
+      log("warn", "no se investigó la empresa", { companyId: job.data.companyId, error: (e as Error).message });
     }
   });
 }

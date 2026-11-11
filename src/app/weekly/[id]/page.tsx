@@ -9,6 +9,7 @@ import { requirePermissionPage } from "@/lib/current-user";
 import { pool } from "@/lib/db";
 import { can } from "@/lib/rbac";
 import { MANUAL_CRITERIA } from "@/lib/scoring/model";
+import { contactsByCompany } from "@/lib/research/service";
 import { getList, listItems, listWeeklyLists, reviewCounts, reviewItem } from "@/lib/weekly/service";
 import { generateBatchAction } from "@/app/diagnostics/actions";
 import { listIndustrySignals, signalName } from "@/lib/analyzer/service";
@@ -43,6 +44,7 @@ export default async function WeeklyPage({ params, searchParams }: { params: Pro
     pool().query<{ id: string; email: string }>(`SELECT id, email FROM users WHERE active AND role IN ('salesperson', 'sales_lead') ORDER BY email`),
     listWeeklyLists(12),
   ]);
+  const contactMap = await contactsByCompany(items.map((i) => i.company_id).filter((x): x is string => Boolean(x)));
   const reviewer = can(user.role, "weekly.review");
   const modelsDiffer = list.model_versions.length > 1;
   const industryNames = Object.fromEntries((await listIndustrySignals()).map((x) => [`industry.${x.slug}`, x.name]));
@@ -93,6 +95,16 @@ export default async function WeeklyPage({ params, searchParams }: { params: Pro
           {it.flags.reappearsDueToChange && <p className="badge badge-info" role="note">Reaparece por cambios: {it.flags.reappearsDueToChange.map((c) => signalName(c, industryNames)).join(", ")}</p>}
           {it.flags.industryToConfirm && <p className="badge badge-warn" role="note">El rubro está por confirmar</p>}
           {it.flags.missingManual && it.flags.missingManual.length > 0 && <p className="muted">Faltan criterios manuales (no se infieren de la web): {it.flags.missingManual.map((k) => MANUAL_CRITERIA.find((c) => c.key === k)?.label ?? k).join(", ")}.</p>}
+          {(() => {
+            const cs = it.company_id ? contactMap.get(it.company_id) ?? [] : [];
+            return cs.length === 0 ? <p className="muted">Sin contactos públicos todavía{it.company_id ? <> · <Link href={`/companies/${it.company_id}`}>abrir la ficha</Link></> : null}</p> : (
+              <p>
+                <strong>Contactos:</strong>{" "}
+                {cs.slice(0, 5).map((k, i) => <span key={k.id}>{i > 0 ? " · " : ""}{k.kind === "formulario" || k.kind === "red_social" ? <a href={k.value} target="_blank" rel="noopener noreferrer">{k.kind === "formulario" ? "formulario" : "red social"}</a> : k.value}{k.status === "verificado_en_sitio" ? " ✓" : ""}</span>)}
+                <span className="muted"> (✓ = visto en su sitio; el resto, comprobar antes de usar)</span>
+              </p>
+            );
+          })()}
           <details>
             <summary>Por qué está en la lista</summary>
             <ul>{it.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
