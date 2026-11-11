@@ -20,3 +20,14 @@ Correos, teléfonos o nombres de personas de contacto, notas internas, puntajes,
 
 ## Pendiente antes de producción
 Confirmar con la empresa las condiciones de retención/uso de datos de la cuenta de API y, si corresponde, informarlo en la política de privacidad. Con datos reales solo se envía contenido público de sitios web de empresas.
+
+## Investigación con Grok (xAI) — sitio web y contactos públicos
+Opcional. Se activa con `XAI_API_KEY` en `.env` (clave de la API de xAI, pago por uso; no sirve la suscripción de la app). Sin clave, Radar solo adivina dominios.
+
+- **Qué se envía a xAI:** razón social, RUC y ciudad de la empresa (datos públicos del padrón de SUNAT) y la orden de buscar su sitio y sus contactos públicos. Nada de usuarios, correos de APROS, claves, diagnósticos ni notas internas.
+- **Qué se recibe:** un JSON con el sitio y una lista de contactos, cada uno con la URL donde se vio. Se valida con un esquema; lo que no cumple se descarta.
+- **Qué hace Radar con eso:** el sitio se comprueba con el descargador seguro (responde, `robots.txt`, nombre o RUC en la portada) y solo se asigna solo si aparece el RUC; los contactos pasan un filtro de formato y quedan «sin verificar», salvo los que Radar ve en el sitio propio de la empresa («verificado en su sitio»).
+- **Solo canales corporativos y públicos.** No se buscan datos de personas (Ley 29733). Las empresas en «No contactar» y los clientes activos no se consultan.
+- **Costo:** tokens del modelo (`XAI_MODEL`, por defecto `grok-4.3`) más 5 USD por cada 1.000 búsquedas web. Cada consulta guarda su costo estimado en `company_research`. Topes por corrida: `RESEARCH_PER_RUN` (empresas) y `RESEARCH_MAX_USD_PER_RUN` (gasto estimado).
+- **Qué sale de Radar:** las consultas las hace el worker (`npm run worker`) hacia `api.x.ai`. La clave no se guarda en la base ni se escribe en los registros.
+

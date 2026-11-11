@@ -8,6 +8,8 @@ import { getModelVersion, scoreCompany } from "../scoring/service";
 import { listOffers, matchServices } from "../offers/service";
 import { runDiscoveryInternal } from "../sources/service";
 import { companiesNeedingWebsite, discoverWebsite, WEBSITE_BUDGET } from "../companies/discover-web";
+import { researchProviderFromEnv, type ResearchProvider } from "../research/provider";
+import { researchBatch } from "../research/service";
 import { getWeeklySettings, weekStartLima, type WeeklySettings } from "./settings";
 import type { ObservationInput } from "../scoring/engine";
 
@@ -16,12 +18,18 @@ export interface PipelineDeps {
   now?: () => Date;
   /** Para pruebas: evita ejecutar el descubrimiento real. */
   skipDiscovery?: boolean;
+  /** Proveedor de investigación (Grok). Por defecto el del entorno; null = sin proveedor (se adivinan dominios). */
+  research?: ResearchProvider | null;
+  /** Para pruebas: descargador usado para validar los sitios que propone el proveedor. */
+  researchWeb?: import("../companies/web").WebDeps;
 }
 
 export interface RunStats {
   discovery: { provider: string; found: number; created: number; error?: string }[];
   /** Búsqueda automática del sitio web de empresas que no lo tenían. */
   websites?: { tried: number; assigned: number; pending: number };
+  /** Investigación con Grok: empresas consultadas, sitios hallados, contactos y gasto estimado (USD). */
+  research?: { tried: number; websites: number; contacts: number; costUsd: number; stoppedForBudget: boolean; errors: number };
   candidates: number;
   analyzed: number;
   analysisSkippedForBudget: number;
@@ -83,18 +91,25 @@ export async function runWeeklyPipeline(
       }
     }
 
-    // 1b) Empresas sin sitio web: se busca su sitio (solo se asigna solo si en la portada aparece su RUC; el resto queda sugerido)
+    // 1b) Sitio web y contactos de las empresas: con Grok (búsqueda web) si hay clave; si no, se prueban direcciones probables.
     if (!deps.skipDiscovery) {
-      const w = { tried: 0, assigned: 0, pending: 0 };
-      for (const c of await companiesNeedingWebsite(WEBSITE_BUDGET)) {
-        w.tried++;
-        try {
-          const r = await discoverWebsite(c.id, { fetcher: deps.analyzer.fetcher, userAgent: deps.analyzer.userAgent, timeoutMs: 8000 });
-          if (r.assigned) w.assigned++;
-          w.pending += r.pending.length;
-        } catch { /* una empresa que falla no detiene la ejecución */ }
+      const provider = deps.research === undefined ? researchProviderFromEnv() : deps.research;
+      if (provider) {
+        const r = await researchBatch(provider, { webDeps: deps.researchWeb });
+        stats.research = r;
+        if (r.stoppedForBudget) { stats.partial = true; stats.partialReasons.push("Se alcanzó el tope de gasto de la investigación con Grok; quedaron empresas sin investigar"); }
+      } else {
+        const w = { tried: 0, assigned: 0, pending: 0 };
+        for (const c of await companiesNeedingWebsite(WEBSITE_BUDGET)) {
+          w.tried++;
+          try {
+            const r = await discoverWebsite(c.id, { fetcher: deps.analyzer.fetcher, userAgent: deps.analyzer.userAgent, timeoutMs: 8000 });
+            if (r.assigned) w.assigned++;
+            w.pending += r.pending.length;
+          } catch { /* una empresa que falla no detiene la ejecución */ }
+        }
+        stats.websites = w;
       }
-      stats.websites = w;
     }
 
     // 2) Candidatos a analizar: con sitio, sin bloqueo, y sin análisis vigente. Primero los nunca analizados.

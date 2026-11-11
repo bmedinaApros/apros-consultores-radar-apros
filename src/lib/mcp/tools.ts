@@ -3,6 +3,7 @@ import { COMMON_SIGNALS } from "../analyzer/observations";
 import { enqueueWeeklyRun } from "../jobs/queue";
 import { getWeeklySettings } from "../weekly/settings";
 import { latestList, listItems, getList, reviewCounts } from "../weekly/service";
+import { contactsByCompany, listContacts } from "../research/service";
 import { listAllPendingCandidates, proposeWebsite, websiteStats } from "../companies/discover-web";
 import { getCompany, listCompanies } from "../companies/service";
 import { parseQuickQuery } from "../registry/quick";
@@ -73,10 +74,12 @@ export async function verEmpresa(id: string) {
   const obs = run ? (await pool().query<{ signal_code: string; status: string; evidence_excerpt: string | null; evidence_url: string | null }>(
     `SELECT signal_code, status, evidence_excerpt, evidence_url FROM signal_observations WHERE analysis_run_id = $1 ORDER BY id`, [run.id])).rows : [];
   const dx = (await pool().query<{ id: string; status: string; stale: boolean }>(`SELECT id, status, stale FROM diagnostics WHERE company_id = $1`, [id])).rows[0];
+  const contacts = await listContacts(id);
   return {
     aviso: DATA_NOTICE,
     empresa: { id: co.id, razon_social: co.legal_name, nombre_comercial: co.trade_name, sitio_web: co.domain, ruc: co.ruc, rubro: co.industry_name, ciudad: co.city, etapa: co.stage, no_contactar: co.blocked },
     analisis_del_sitio: run ? { fecha: run.finished_at, paginas_leidas: run.pages_fetched, senales: obs.map((o) => ({ senal: COMMON_SIGNALS.find((s) => s.code === o.signal_code)?.name ?? o.signal_code, resultado: o.status === "observed" ? "detectado" : o.status === "not_detected" ? "no detectado en el HTML (no prueba que no exista)" : "no se pudo verificar", extracto: clip(o.evidence_excerpt, 200), url: o.evidence_url })) } : null,
+    contactos_publicos: contacts.map(contactView),
     diagnostico: dx ? { id: dx.id, estado: dx.status, desactualizado: dx.stale } : null,
   };
 }
@@ -104,12 +107,16 @@ export async function proponerSitioWeb(empresaId: string, url: string) {
 const MCP_READER = { id: "00000000-0000-0000-0000-000000000000", role: "admin" as const };
 
 /** La lista semanal (la última por defecto): empresas priorizadas con puntaje, servicios sugeridos y motivos. */
+const KIND_ES: Record<string, string> = { telefono: "teléfono", whatsapp: "WhatsApp", correo: "correo", formulario: "formulario", red_social: "red social" };
+const contactView = (k: { kind: string; value: string; source_url: string; status: string }) => ({ tipo: KIND_ES[k.kind] ?? k.kind, valor: k.value, fuente: k.source_url, estado: k.status === "verificado_en_sitio" ? "verificado en el sitio de la empresa" : "sin verificar" });
+
 export async function verListaSemanal(a: { listaId?: string; revision?: "pendientes" | "aprobadas" | "todas"; limite?: number }) {
   const list = a.listaId ? await getList(a.listaId) : await latestList();
   if (!list) return null;
   const review = a.revision === "pendientes" ? "pending_review" : a.revision === "aprobadas" ? "approved" : undefined;
   const items = (await listItems(MCP_READER, list.id, { review })).slice(0, clamp(a.limite, 1, 50, 50));
   const counts = await reviewCounts(list.id);
+  const contactMap = await contactsByCompany(items.map((i) => i.company_id).filter((x): x is string => Boolean(x)));
   return {
     aviso: DATA_NOTICE,
     lista: { id: list.id, semana: list.week_start, creada: list.created_at, total: list.total_items, cobertura_parcial: list.partial, motivos_parciales: list.budget.partialReasons, excluidas: list.excluded, revision: counts },
@@ -117,6 +124,7 @@ export async function verListaSemanal(a: { listaId?: string; revision?: "pendien
     empresas: items.map((i) => ({
       posicion: i.rank, empresa: i.company_name, empresa_id: i.company_id, sitio_web: i.company_domain, rubro: i.industry_name, ciudad: i.city, puntaje: Number(i.score),
       prioridad: i.band === "sales" ? "ventas" : "nutrir", servicios_sugeridos: i.services.map((s) => ({ servicio: s.name, por_que: s.reasons.slice(0, 2).map((r) => clip(r.rationale, 160)) })),
+      contactos_publicos: (i.company_id ? contactMap.get(i.company_id) ?? [] : []).map(contactView),
       motivos: i.reasons.slice(0, 4).map((r) => clip(r, 200)), revision: i.review_status === "approved" ? "aprobada" : i.review_status === "rejected" ? "descartada" : "pendiente",
     })),
   };
@@ -160,7 +168,7 @@ export async function verSitiosPorConfirmar(limite?: number) {
     mostrando: rows.length, total,
     sugerencias: rows.map((r) => ({
       empresa_id: r.company_id, empresa: r.legal_name, ruc: r.ruc, ciudad: r.city, sitio_sugerido: `https://${r.domain}`, coincidencia: r.confidence, motivo: WHY[r.confidence],
-      titulo_de_la_pagina: clip(r.evidence.title ?? null, 160), origen: r.source === "ia" ? "Comité IA" : "búsqueda automática", encontrado: r.created_at,
+      titulo_de_la_pagina: clip(r.evidence.title ?? null, 160), origen: r.source === "ia" ? "Comité IA" : r.source === "grok" ? "Grok (búsqueda web)" : "búsqueda automática", encontrado: r.created_at,
     })),
   };
 }

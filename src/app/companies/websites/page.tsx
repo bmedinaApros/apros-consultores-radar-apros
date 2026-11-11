@@ -49,7 +49,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
                 <td><Link href={`/companies/${r.company_id}`}>{r.legal_name}</Link><div className="muted">{r.ruc ?? "sin RUC"}{r.city ? ` · ${r.city}` : ""}</div></td>
                 <td><a href={`https://${r.domain}`} target="_blank" rel="noopener noreferrer">{r.domain}</a>{r.evidence.title ? <div className="muted">Título: «{r.evidence.title}»</div> : null}</td>
                 <td><strong>{r.confidence}</strong><div className="muted">{WHY[r.confidence]}</div></td>
-                <td>{r.source === "ia" ? "Comité IA" : "Búsqueda automática"}</td>
+                <td>{r.source === "ia" ? "Comité IA" : r.source === "grok" ? "Grok (búsqueda web)" : "Búsqueda automática"}</td>
                 {canWrite && (
                   <td>
                     <div className="row">

@@ -7,6 +7,9 @@ export const WEEKLY_QUEUE = "weekly-run";
 export const WEEKLY_SCHEDULE = "weekly-run-schedule";
 export const DIAGNOSTIC_QUEUE = "generate-diagnostic";
 export const REGISTRY_QUEUE = "registry-import";
+export const RESEARCH_QUEUE = "research-company";
+
+export interface ResearchJob { companyId: string }
 
 export interface RegistryJob { batchId: string; requestedBy: string | null }
 
@@ -39,6 +42,7 @@ export function getBoss(opts: { supervise?: boolean } = {}): Promise<PgBoss> {
     await boss.createQueue(WEEKLY_QUEUE, { policy: "short" });
     await boss.createQueue(DIAGNOSTIC_QUEUE, { policy: "short" });
     await boss.createQueue(REGISTRY_QUEUE, { policy: "short" });
+    await boss.createQueue(RESEARCH_QUEUE, { policy: "short" });
     return boss;
   })();
   return g.__radarBoss;
@@ -92,4 +96,10 @@ export async function enqueueDiagnostic(job: DiagnosticJob): Promise<string | nu
 export async function enqueueRegistryImport(job: RegistryJob): Promise<string | null> {
   const boss = await getBoss();
   return boss.send(REGISTRY_QUEUE, job, { singletonKey: "registry-import", retryLimit: 0, expireInSeconds: 24 * 3600 });
+}
+
+/** Encola la investigación de una empresa (Grok). Una pendiente de la misma empresa no se duplica; no se reintenta sola (cada intento cuesta). */
+export async function enqueueResearch(job: ResearchJob): Promise<string | null> {
+  const boss = await getBoss();
+  return boss.send(RESEARCH_QUEUE, job, { singletonKey: `research:${job.companyId}`, retryLimit: 0, expireInSeconds: 900 });
 }
