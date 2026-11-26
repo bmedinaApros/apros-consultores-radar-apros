@@ -1,5 +1,7 @@
 # Radar APROS
 
+> ¿Vas a trabajar en el código? Empieza por **[docs/HACKATON.md](docs/HACKATON.md)**: puesta en marcha, datos de demostración, mapa del código y retos.
+
 Aplicación web interna de APROS Consultores Digitales. Su propósito: **entregar cada semana una lista priorizada de empresas peruanas a las que APROS podría ofrecer sus servicios**, con la evidencia de cada hallazgo y la revisión de un consultor antes de que un vendedor la use.
 
 Estado: **fase 4 de 8 (Puntaje y lista semanal)**. Incluye acceso con Google Workspace, roles, auditoría, importación CSV con deduplicación, lista de no contactar, clientes activos, rubros editables y el marco de fuentes. Analiza el sitio público de cada empresa y guarda señales con evidencia (ver `docs/ANALYZER.md`). Puntúa con modelos por rubro, sugiere servicios de APROS y arma cada semana una lista que una persona revisa (ver `docs/SCORING.md`). El diagnóstico llega en la fase 5. Ver `docs/PLAN.md`.

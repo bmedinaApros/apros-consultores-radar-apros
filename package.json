@@ -23,6 +23,7 @@
     "registry:import": "tsx --env-file=.env scripts/registry-import.ts",
     "registry:rubros": "tsx --env-file=.env scripts/registry-rubros.ts",
     "registry:search": "tsx --env-file=.env scripts/registry-search.ts",
+    "registry:demo": "tsx scripts/registry-demo.ts",
     "mcp:config": "tsx scripts/mcp-config.ts",
     "iniciar": "bash scripts/iniciar.sh",
     "autoarranque": "bash scripts/autoarranque.sh",
